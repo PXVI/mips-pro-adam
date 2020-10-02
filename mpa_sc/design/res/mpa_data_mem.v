@@ -42,7 +42,8 @@
 
 module mpa_data_mem #(  parameter   DATA_CAPACITY = 128,
                                     DATA_WIDTH = 32,
-                                    ADDRESS_WIDTH = 32
+                                    ADDRESS_WIDTH = 32,
+                                    GRANULARITY = 8 // Byte Addressable
                     )
                     (   
                                     input HW_RSTn,
@@ -55,5 +56,53 @@ module mpa_data_mem #(  parameter   DATA_CAPACITY = 128,
 
                                     output [DATA_WIDTH-1:0] data_out
                     );
+
+    reg [GRANULARITY-1:0] mem_p [(DATA_CAPACITY*(DATA_WIDTH/GRANULARITY))-1:0]; // 128*4 Locations ( Each is byte addressable )
+    reg [GRANULARITY-1:0] mem_n [(DATA_CAPACITY*(DATA_WIDTH/GRANULARITY))-1:0]; // Same as above
+
+    integer i = 0, j = 0;
+    genvar k;
+
+    always@( posedge CLK or negedge HW_RSTn )
+    begin
+        for( i = 0; i < (DATA_CAPACITY*(DATA_WIDTH/GRANULARITY)); i = i + 1 )
+        begin
+            mem_p[i] <= mem_n[i];
+        end
+
+        if( !HW_RSTn )
+        begin
+            // Do Nothing : For now
+        end
+        else
+        begin
+            mem_p <= mem_n;
+        end
+    end
+
+    always@( * )
+    begin
+        if( WE )
+        begin
+            for( j = 0; j < (DATA_WIDTH/GRANULARITY) + (DATA_WIDTH%GRANULARITY); j = j + 1 )
+            begin
+                mem_n[addr%(DATA_CAPACITY*(DATA_WIDTH/GRANULARITY)+j)] = data_in[GRANULARITY*(((DATA_WIDTH/GRANULARITY)+(DATA_WIDTH%GRANULARITY)-1)-j)+:GRANULARITY]; // 0 : data_in[31:24], 1 : data_in[23:26], 2 : data_in[15:8], 3 : data_in[7:0]
+            end
+        end
+        else
+        begin
+            for( i = 0; i < (DATA_CAPACITY*(DATA_WIDTH/GRANULARITY)); i = i + 1 )
+            begin
+                mem_n[i] = mem_p[i];
+            end
+        end
+    end
+
+    generate
+        for( k = 0; k < (DATA_WIDTH/GRANULARITY) + (DATA_WIDTH%GRANULARITY); k = k + 1 )
+        begin
+            assign data_out[GRANULARITY*(((DATA_WIDTH/GRANULARITY)+(DATA_WIDTH%GRANULARITY)-1)-k)+:GRANULARITY] = ( RE ) ? mem_p[addr%(DATA_CAPACITY*(DATA_WIDTH/GRANULARITY)+k)] : 8'b0;
+        end
+    endgenerate
 
 endmodule

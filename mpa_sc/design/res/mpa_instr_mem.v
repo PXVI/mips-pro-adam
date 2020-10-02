@@ -53,7 +53,11 @@ module mpa_instr_mem #( parameter   INSTR_CAPACITY = 64,
     reg [ADDRESS_ACCESS-1:0] instr_mem_p [INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS)]; // 64*4 memory locations, ie still 64 full instructions
     reg [ADDRESS_ACCESS-1:0] instr_mem_n [INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS)]; // Same as above
 
+    reg [INSTR_WIDTH-1:0] temp_out;
+
     integer i = 0;
+    integer j = 0;
+    integer k = 0;
 
     always@(  posedge CLK or negedge HW_RSTn)
     begin
@@ -64,14 +68,14 @@ module mpa_instr_mem #( parameter   INSTR_CAPACITY = 64,
 
         if( !HW_RSTn )
         begin
-            for( i = 0; i < INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS); i = i + 1 )
+            for( i = 0; i < INSTR_CAPACITY*( (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS) ); i = i + 1 )
             begin
-                instr_mem_p[i] <= 32'd0; // TODO : Decide later what the default values will be/should be
+                instr_mem_p[i] <= 0; // TODO : Decide later what the default values will be/should be
             end
         end
         else
         begin
-            for( i = 0; i < INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS); i = i + 1 )
+            for( i = 0; i < INSTR_CAPACITY*( (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS) ); i = i + 1 )
             begin
                 instr_mem_p[i] <= instr_mem_n[i];
             end
@@ -82,10 +86,21 @@ module mpa_instr_mem #( parameter   INSTR_CAPACITY = 64,
     begin
         if( WE )
         begin
-            instr_mem_n[addr%(INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS)] <= data_in;
+            for( j = 0; j < (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS); j = j + 1 )
+            begin
+                instr_mem_n[addr%(INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS))+j] <= data_in[ADDRESS_ACCESS*( (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS) - 1 - j )+:ADDRESS_ACCESS];
+            end
         end
     end
 
-    assign data_out = instr_mem_p[addr%(INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS)]; // The Mod is added to make sure the actual evaluated address is inside the valid range of addresses
+    always@( * )
+    begin
+        for( k = 0; k < (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS); k = k + 1 )
+        begin
+            temp_out[(ADDRESS_ACCESS*((INSTR_WIDTH/ADDRESS_ACCESS)+(INSTR_WIDTH%ADDRESS_ACCESS)-1-j))+:ADDRESS_ACCESS] = instr_mem_p[addr%(INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS))+k]; // The Mod is added to make sure the actual evaluated address is inside the valid range of addresses
+        end
+    end
+
+    assign data_out = temp_out;
 
 endmodule

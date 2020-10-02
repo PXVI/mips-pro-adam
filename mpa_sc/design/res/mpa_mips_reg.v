@@ -103,7 +103,7 @@ module mpa_mips_reg (
     begin
         if( WE )
         begin
-            mips_n[A2] = DIN; // TODO : There is an exception that must be raised if mem[0] is being written ( I think )
+            mem_n[A2] = DIN; // TODO : There is an exception that must be raised if mem[0] is being written ( I think )
         end
     end
 
