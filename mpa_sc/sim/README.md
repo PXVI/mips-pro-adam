@@ -1,6 +1,6 @@
 # mips-pro-adam
 ------------------------
-<b>Usage Manual :</b><br />
+<b>User Guide :</b><br />
 ------------------------
 <br />
 1. Source the .install file with "<b>source .install</b>"
