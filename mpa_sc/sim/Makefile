@@ -32,7 +32,7 @@
 
 TESTNAME?=NO_TEST
 
-TB_FILENAME?=./../testbench/integration_top.v
+TB_FILENAME?=./../testbench/integration_top.sv
 IP_FILENAME?=./../design/res/mpa_mips.v
 
 COMPILE_FILELIST?=./compile_filelist/compile_filelist.list
@@ -59,7 +59,7 @@ DESIGN_ONLY?=0
 ifeq ($(DESIGN_ONLY),1)
 FILENAME?=$IP_MIPS_MPA_32/res/mpa_mips.v
 else
-FILENAME?=./../testbench/integration_top.v
+FILENAME?=./../testbench/integration_top.sv
 endif
 
 ifeq ($(WALL),1)
