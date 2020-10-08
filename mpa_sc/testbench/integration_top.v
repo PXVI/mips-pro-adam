@@ -40,4 +40,34 @@
 
 module integration_top;
 
+// IP Regs and Wires
+// -----------------
+
+reg ip_CLK;
+reg ip_RSTn;
+
+// Testbench Variables / Registers
+// -------------------------------
+
+
+// IP Instantiations
+// -----------------
+
+mpa_mips_32 mips_mpa_dut_inst   (
+                                    .CLK( ip_CLK )
+                                );
+
+
+initial
+begin
+end
+
+`ifdef GEN_DUMP
+    initial
+    begin
+        $dumpfile( "dump.vcd" );
+        $dumpvars( 0, integration_top );
+    end
+`endif
+
 endmodule

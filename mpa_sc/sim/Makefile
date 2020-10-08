@@ -45,6 +45,12 @@ else
 DO_CMD= -do "run -all; quit -f"
 endif
 
+DUMP?=0
+ifeq ($(DUMP),1)
+DUMP_ARG=+define+GEN_DUMP
+else
+endif
+
 LINT?=0
 WALL?=0
 
@@ -73,6 +79,10 @@ endif
 
 comp_only : clean lib comp
 
+# Compilie Time Arguments
+# --------------------------------------------
+COMP_ARGS=$(DUMP_ARG)
+
 # To Clean Redundant Files and Other Things
 # --------------------------------------------
 clean:
@@ -90,12 +100,14 @@ comp:
 	-64 \
 	-work ./work \
 	+acc \
+	$(COMP_ARGS) \
 	-l compile.log \
 	-sv \
 	-vopt \
 	-writetoplevels questa.tops \
 	$(FILENAME) \
-	-f $(COMPILE_FILELIST);
+	-f $(COMPILE_FILELIST) \
+	;
 	
 
 # Simulation

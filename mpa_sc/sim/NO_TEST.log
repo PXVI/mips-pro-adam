@@ -1,0 +1,30 @@
+# vsim +define+UVM_NO_DPI +UVM_TESTNAME=NO_TEST -do {run -all; quit -f} -l NO_TEST.log -c -wlf vsim.wlf top_opt 
+# //  Questa Sim-64
+# //  Version 10.2b linux_x86_64 May 16 2013
+# //
+# //  Copyright 1991-2013 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  THIS WORK CONTAINS TRADE SECRET AND PROPRIETARY INFORMATION
+# //  WHICH IS THE PROPERTY OF MENTOR GRAPHICS CORPORATION OR ITS
+# //  LICENSORS AND IS SUBJECT TO LICENSE TERMS.
+# //
+# Loading sv_std.std
+# Loading work.integration_top(fast)
+# Loading work.mpa_mips_32(fast)
+# Loading work.mpa_instr_mem(fast)
+# Loading work.mpa_mips_reg(fast)
+# Loading work.mpa_alu(fast)
+# Loading work.mpa_data_mem(fast)
+# ** Warning: (vsim-3017) ./../testbench/integration_top.v(58): [TFMPC] - Too few port connections. Expected 9, found 2.
+#         Region: /integration_top/mips_mpa_dut_inst
+# ** Warning: (vsim-3722) ./../testbench/integration_top.v(58): [TFMPC] - Missing connection for port 'din'.
+# ** Warning: (vsim-3722) ./../testbench/integration_top.v(58): [TFMPC] - Missing connection for port 'dout'.
+# ** Warning: (vsim-3722) ./../testbench/integration_top.v(58): [TFMPC] - Missing connection for port 'addr'.
+# ** Warning: (vsim-3722) ./../testbench/integration_top.v(58): [TFMPC] - Missing connection for port 'debug_func'.
+# ** Warning: (vsim-3722) ./../testbench/integration_top.v(58): [TFMPC] - Missing connection for port 'debug_we'.
+# ** Warning: (vsim-3722) ./../testbench/integration_top.v(58): [TFMPC] - Missing connection for port 'debug_re'.
+# ** Warning: (vsim-3722) ./../testbench/integration_top.v(58): [TFMPC] - Missing connection for port 'mem_debug'.
+# run -all 
+# Define works ---------------------------------
+#  quit -f 

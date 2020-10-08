@@ -1,0 +1,11 @@
+QuestaSim-64 vlog 10.2b Compiler 2013.05 May 16 2013
+/home/EDA/mentor/questasim/bin/../linux_x86_64/vlog -64 -work ./work +acc +define+GEN_DUMP -l compile.log -sv -vopt -writetoplevels questa.tops ./../testbench/integration_top.v -f ./compile_filelist/compile_filelist.list 
+-- Compiling module mpa_alu
+-- Compiling module mpa_data_mem
+-- Compiling module mpa_instr_mem
+-- Compiling module mpa_mips_reg
+-- Compiling module mpa_mips_32
+-- Compiling module integration_top
+
+Top level modules:
+	integration_top
