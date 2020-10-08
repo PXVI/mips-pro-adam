@@ -33,7 +33,7 @@
 TESTNAME?=NO_TEST
 
 TB_FILENAME?=./../testbench/integration_top.v
-IP_FILENAME?=$IP_MIPS_MPA_32/res/mpa_mips.v
+IP_FILENAME?=./../design/res/mpa_mips.v
 
 COMPILE_FILELIST?=./compile_filelist/compile_filelist.list
 
