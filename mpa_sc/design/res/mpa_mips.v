@@ -73,13 +73,16 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     wire data_mem_we_gate, data_mem_re_gate;
     wire mips_reg_we_gate;
 
-    wire [4:0] instr2mr_a0_addr_gate, instr2mr_a1_addr_gate;
+    wire [4:0] instr2mr_a0_addr_gate, instr2mr_a1_addr_gate, instr2mr_a2_addr_gate;
     wire [DATA_WIDTH-1:0] instr_imm2mr_gate;
     wire [3-1:0] mpa_alu_func_sel_gate;
     wire [DATA_WIDTH-1:0] mr_a0_out;
-    wire [DATA_WIDTH-1:0] mr_a1_out_gate;
+    wire [DATA_WIDTH-1:0] mr_a1_out_gate; // Supports DEBUG Access
     wire [DATA_WIDTH-1:0] alu_a1_in_gate;
+    wire [ADDRESS_WIDTH-1:0] dm_addr_in_gate;
+    wire [DATA_WIDTH-1:0] dm_data_in_gate;
 
+    reg instr_mem_we_local;
     reg mips_reg_we_local;
     reg [2:0] instr_imm_value_en_local;
     reg [3-1:0] mpa_alu_func_sel_reg;
@@ -88,9 +91,16 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     reg load_from_data_addr_local;
     reg data_mem_we_local;
     reg data_mem_re_local;
+    reg [ADDRESS_WIDTH-1:0] dm_addr_in_local;
+    reg [DATA_WIDTH-1:0] dm_data_in_local;
+    wire data_mem_we_wire;
+    wire data_mem_re_wire;
+    reg [4:0] instr2mr_a0_addr_local, instr2mr_a1_addr_local, instr2mr_a2_addr_local;
     reg [DATA_WIDTH-1:0] instr_imm2mr_reg;
+    reg [DATA_WIDTH-1:0] debug_access_dout; // DEBUG Access
     wire [DATA_WIDTH-1:0] alu_data_out;
-    wire [DATA_WIDTH-1:0] data_mem_dout;
+    wire [DATA_WIDTH-1:0] instr_mem_dout; // Supports DEBUG Access
+    wire [DATA_WIDTH-1:0] data_mem_dout; // Supports DEBUG Access
 
     reg [ADDRESS_WIDTH-1:0] pc_p; // Special Purpose Register #1
     reg [ADDRESS_WIDTH-1:0] pc_n;
@@ -98,15 +108,41 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     reg [DATA_WIDTH-1:0] reg_HI_p, reg_HI_n; // Special Purpose Register #2
     reg [DATA_WIDTH-1:0] reg_LO_p, reg_LO_n; // Special Purpose Register #3
 
+    // Debug Access Ports
+    // ++++++++++++++++++
+    always@( * )
+    begin
+        case( debug_func )
+            1       :   begin // IM
+                            debug_access_dout = instr_mem_dout;
+                        end
+            2       :   begin // DM
+                            debug_access_dout = data_mem_dout;
+                        end
+            3       :   begin // MR
+                            debug_access_dout = mr_a1_out_gate;
+                        end
+            default :   begin // Default
+                            debug_access_dout = 'b0;
+                        end
+        endcase
+    end
+
+    assign dout = debug_access_dout;
+
+    always@( * )
+    begin
+    end
+
     // Control Logic Signals
     // +++++++++++++++++++++
     wire [ADDRESS_WIDTH-1:0] pc2instr_mem_addr;
 
-    assign instr_mem_we_gate = ( ( debug_func == 2'd1 ) && mem_debug ) ? debug_we : 0;
-    assign data_mem_we_gate = ( ( debug_func == 2'd2 ) && mem_debug ) ? debug_we : 0 /* TODO Connect this to the mpa's data mem WE */;
-    assign data_mem_re_gate = ( ( debug_func == 2'd2 ) && mem_debug ) ? debug_re : 0 /* TODO Connect this to the mpa's data mem RE */;
-    assign mips_reg_we_gate = ( ( debug_func == 2'd3 ) && mem_debug ) ? debug_we : mips_reg_we_local;
     assign mem_debug_clk_gate = ( mem_debug ) ? 1'b0 /* Optimize */ : CLK;
+    assign instr_mem_we_gate = ( mem_debug ) ? ( debug_func == 2'd1 ) ? debug_we : 1'b0 : instr_mem_we_local; // Debug Supported
+    assign mips_reg_we_gate = (  mem_debug ) ? ( debug_func == 2'd3 ) ? debug_we : 1'b0 : mips_reg_we_local; // Debug Supported
+    assign data_mem_we_gate = ( mem_debug ) ? ( debug_func == 2'd2 ) ? debug_we : 1'b0 : data_mem_we_local; // Debug Supported 
+    assign data_mem_re_gate = ( mem_debug ) ? ( debug_func == 2'd2 ) ? debug_re : 1'b0 : data_mem_re_local; // Debug Supported
 
     assign instr2mr_a0_addr_gate = pc2instr_mem_addr[25:21]; // A0
     assign instr2mr_a0_addr_gate = pc2instr_mem_addr[20:16]; // A1
@@ -132,7 +168,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                         end
         endcase       
     end
-    assign instr_imm2mr_gate = instr_imm2mr_reg;
+    assign instr_imm2mr_gate = ( mem_debug ) ? din : instr_imm2mr_reg; // Debug Supported
 
     always@( * ) // MIPS ALU Second Input Multiplexer
     begin
@@ -151,7 +187,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     assign alu_a1_in_gate = alu_a1_in_reg;
 
     assign mpa_alu_func_sel_gate = mpa_alu_func_sel_reg;
-    assign pc2instr_mem_addr = pc_p;
+    assign pc2instr_mem_addr = ( mem_debug ) ? addr : pc_p; // Debug Access
 
     /* Instructions
      * ------------
@@ -189,6 +225,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     begin
         // Defaults
         // ++++++++
+        instr_mem_we_local = 0;
         mips_reg_we_local = 0;
         instr_imm_value_en_local = 0;
         mr_a1_out_instr_imm_en_local = 0;
@@ -365,6 +402,26 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
         pc_n = { pc_p + 1'b1 }; // Default Rule
     end
 
+    // MIPS Reg Input Address Mux
+    // ++++++++++++++++++++++++++
+    always@( * )
+    begin
+        if( mem_debug )
+        begin
+            instr2mr_a1_addr_local = addr;
+        end
+        else
+        begin
+            instr2mr_a1_addr_local = instr_mem_dout[20:16]; // rt
+        end
+        instr2mr_a0_addr_local = instr_mem_dout[25:21]; // rs
+        instr2mr_a2_addr_local = instr_mem_dout[15:11]; // rd in R type and rt in I type TODO
+    end
+
+    assign instr2mr_a0_addr_gate = instr2mr_a0_addr_local;
+    assign instr2mr_a1_addr_gate = instr2mr_a1_addr_local;
+    assign instr2mr_a2_addr_gate = ( mem_debug ) ? addr : instr2mr_a2_addr_local;
+
     // Instruction Memory Instance
     // +++++++++++++++++++++++++++
     mpa_instr_mem   #(  .ADDRESS_WIDTH( ADDRESS_WIDTH ),
@@ -373,11 +430,11 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                     instr_mem_inst
                     (
                         .HW_RSTn( HW_RSTn ),
-                        .CLK( CLK ),
+                        .CLK( mem_debug_clk_gate ),
                         .addr( pc2instr_mem_addr ), // PC to Instruction Memory
-                        .WE(),
+                        .WE( instr_mem_we_gate ),
                         .data_in( din ), // Instr Mem Debug Data In
-                        .data_out() // Instr Mem Debug Data Out
+                        .data_out( instr_mem_dout ) // Instr Mem Debug Data Out
                     );
 
     // MIPS MPA Register Memory INstance
@@ -387,7 +444,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                         .CLK( mem_debug_clk_gate ),
                                         .A0( instr2mr_a0_addr_gate ),
                                         .A1( instr2mr_a1_addr_gate ),
-                                        .A2( instr2mr_a1_addr_gate ), // Redundant Input Pin : TODO Remove this later
+                                        .A2( instr2mr_a2_addr_gate ),
                                         .DIN( instr_imm2mr_gate ),
                                         .WE( mips_reg_we_gate ),
                                         .DOUT0( mr_a0_out ),
@@ -406,6 +463,17 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                 .data_out( alu_data_out )
             );
 
+    // Data Memory Input Mux
+    // +++++++++++++++++++++
+    always@( * )
+    begin
+        dm_addr_in_local = alu_data_out;
+        dm_data_in_local = alu_data_out;
+    end
+
+    assign dm_addr_in_gate = ( mem_debug ) ? addr : dm_addr_in_local; // Debug Supported
+    assign dm_data_in_gate = ( mem_debug ) ? din : dm_data_in_local; // Debug Supported
+    
     // Data Memory Instance
     // ++++++++++++++++++++
     mpa_data_mem    #(  .DATA_WIDTH( DATA_WIDTH ),
@@ -414,11 +482,11 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                     mpa_data_mem_inst
                     (   
                         .HW_RSTn( HW_RSTn ),
-                        .CLK( CLK ),
-                        .addr( alu_data_out ), // TODO
-                        .data_in( alu_data_out ),
-                        .WE( data_mem_we_local ),
-                        .RE( data_mem_re_local ),
+                        .CLK( mem_debug_clk_gate ),
+                        .addr( dm_addr_in_gate ), // TODO
+                        .data_in( dm_data_in_gate ),
+                        .WE( data_mem_we_gate ),
+                        .RE( data_mem_re_gate ),
                         .data_out( data_mem_dout ) 
                     );
 
