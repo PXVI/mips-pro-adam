@@ -138,11 +138,15 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     begin
         alu_a1_in_reg = mr_a1_out_gate;
 
-        if( mr_a1_out_instr_imm_en_local )
-        begin
-            alu_a1_in_reg[15:0] = { pc2instr_mem_addr[15:0] }; // Sign Extended
-            alu_a1_in_reg[31:16] = {16{ pc2instr_mem_addr[15] }};
-        end
+        case( mr_a1_out_instr_imm_en_local )
+            1           :   begin
+                                alu_a1_in_reg[15:0] = { pc2instr_mem_addr[15:0] }; // Sign Extended
+                                alu_a1_in_reg[31:16] = {16{ pc2instr_mem_addr[15] }};
+                            end
+            default     :   begin
+                                alu_a1_in_reg = pc2instr_mem_addr; // Default
+                            end
+        endcase
     end
     assign alu_a1_in_gate = alu_a1_in_reg;
 
@@ -230,7 +234,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                                     end
                                     // XOR ( MIPS I )
                                     // ++++++++++++++
-                                    6'b100000   :   begin
+                                    6'b10_0110  :   begin
                                                     end
                                     // NOR ( MIPS I )
                                     // ++++++++++++++

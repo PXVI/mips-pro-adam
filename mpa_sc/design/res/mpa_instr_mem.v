@@ -88,7 +88,7 @@ module mpa_instr_mem #( parameter   INSTR_CAPACITY = 64,
         begin
             for( j = 0; j < (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS); j = j + 1 )
             begin
-                instr_mem_n[addr%(INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS))+j] <= data_in[ADDRESS_ACCESS*( (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS) - 1 - j )+:ADDRESS_ACCESS];
+                instr_mem_n[addr%(INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS))+j] = data_in[ADDRESS_ACCESS*( (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS) - 1 - j )+:ADDRESS_ACCESS];
             end
         end
     end
