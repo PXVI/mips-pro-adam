@@ -87,7 +87,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
 
     reg instr_mem_we_local;
     reg mips_reg_we_local;
-    reg [2:0] instr_imm_value_en_local;
+    reg [3:0] instr_imm_value_en_local;
     reg [3-1:0] mpa_alu_func_sel_reg;
     reg [DATA_WIDTH-1:0] alu_a1_in_reg;
     reg [1:0] mr_a1_out_instr_imm_en_local;
@@ -98,12 +98,15 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     reg [DATA_WIDTH-1:0] dm_data_in_local;
     wire data_mem_we_wire;
     wire data_mem_re_wire;
+    wire [3:0] instr_imm_value_en_gate;
     reg [4:0] instr2mr_a0_addr_local, instr2mr_a1_addr_local, instr2mr_a2_addr_local;
     reg [DATA_WIDTH-1:0] instr_imm2mr_reg;
     reg [DATA_WIDTH-1:0] debug_access_dout; // DEBUG Access
+    reg [1:0] instr_r_i_j_type_local;
     wire [DATA_WIDTH-1:0] alu_data_out;
     wire [DATA_WIDTH-1:0] instr_mem_dout; // Supports DEBUG Access
     wire [DATA_WIDTH-1:0] data_mem_dout; // Supports DEBUG Access
+    wire [1:0] instr_r_i_j_type_gate; // Tell if the instruction is R type or I type or J type : R(0), I(1), J(2)
 
     reg [ADDRESS_WIDTH-1:0] pc_p; // Special Purpose Register #1
     reg [ADDRESS_WIDTH-1:0] pc_n;
@@ -154,9 +157,9 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     begin
         instr_imm2mr_reg = { 32'b0 };
 
-        case( instr_imm_value_en_local )
+        case( instr_imm_value_en_gate )
             1       :   begin
-                            instr_imm2mr_reg = { 16'b0, pc2instr_mem_addr[15:0] };
+                            instr_imm2mr_reg = { 16'b0, instr_mem_dout[15:0] };
                         end
             2       :   begin // Load byte
                             instr_imm2mr_reg = { 24'b0, data_mem_dout[7:0] };
@@ -167,11 +170,18 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
             4       :   begin // Load word
                             instr_imm2mr_reg = { data_mem_dout };
                         end
+            5       :   begin // Load byte sign ext
+                            instr_imm2mr_reg = { {24{data_mem_dout[7]}}, data_mem_dout[7:0] };
+                        end
+            6       :   begin // Load halfword sign ext
+                            instr_imm2mr_reg = { {16{data_mem_dout[15]}}, data_mem_dout[15:0] };
+                        end
             default :   begin
                         end
         endcase       
     end
     assign instr_imm2mr_gate = ( mem_debug ) ? din : instr_imm2mr_reg; // Debug Supported
+    assign instr_imm_value_en_gate = instr_imm_value_en_local;
 
     always@( * ) // MIPS ALU Second Input Multiplexer
     begin
@@ -179,11 +189,11 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
 
         case( mr_a1_out_instr_imm_en_local )
             1           :   begin
-                                alu_a1_in_reg[15:0] = { pc2instr_mem_addr[15:0] }; // Sign Extended
-                                alu_a1_in_reg[31:16] = {16{ pc2instr_mem_addr[15] }};
+                                alu_a1_in_reg[15:0] = { instr_mem_dout[15:0] }; // Sign Extended
+                                alu_a1_in_reg[31:16] = {16{ instr_mem_dout[15] }};
                             end
             default     :   begin
-                                alu_a1_in_reg = pc2instr_mem_addr; // Default
+                                alu_a1_in_reg = instr_mem_dout; // Default
                             end
         endcase
     end
@@ -234,12 +244,13 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
         mr_a1_out_instr_imm_en_local = 0;
         data_mem_we_local = 0;
         data_mem_re_local = 0;
+        instr_r_i_j_type_local = 0; // Default is R type
 
-        case( pc2instr_mem_addr[31:26] )
+        case( instr_mem_dout[31:26] )
             // Generic Register Instruction ( Special Opcode )
             // +++++++++++++++++++++++++++++++++++++++++++++++
             6'b00_0000  :   begin
-                                case( pc2instr_mem_addr[5:0] )
+                                case( instr_mem_dout[5:0] )
                                     // ADD ( MIPS I )
                                     // ++++++++++++++
                                     6'b10_0000  :   begin
@@ -300,11 +311,11 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                             end
             // ADDI ( MIPS I )
             // +++++++++++++++
-            6'b10_0000  :   begin
+            6'b00_1000  :   begin
                             end
             // ADDIU ( MIPS I )
             // ++++++++++++++++
-            6'b00_1000  :   begin
+            6'b00_1001  :   begin
                             end
             // ANDI ( MIPS I )
             // +++++++++++++++
@@ -338,6 +349,17 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                 mr_a1_out_instr_imm_en_local = 1;
                                 data_mem_re_local = 1;
                                 instr_imm_value_en_local = 2;
+                                instr_r_i_j_type_local = 1;
+                            end
+            // LB [ Load Byte Sign Ext ]
+            // +++++++++++++++++++++++++
+            6'b10_0000  :   begin
+                                mips_reg_we_local = 1;
+                                mpa_alu_func_sel_reg = `alu_add;
+                                mr_a1_out_instr_imm_en_local = 1;
+                                data_mem_re_local = 1;
+                                instr_imm_value_en_local = 5;
+                                instr_r_i_j_type_local = 1;
                             end
             // LHU ( MIPS I ) [ Load Half Word Unsigned ]
             // ++++++++++++++++++++++++++++++++++++++++++
@@ -347,6 +369,17 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                 mr_a1_out_instr_imm_en_local = 1;
                                 data_mem_re_local = 1;
                                 instr_imm_value_en_local = 3;
+                                instr_r_i_j_type_local = 1;
+                            end
+            // LH [ Load Half Word Sign Ext ]
+            // ++++++++++++++++++++++++++++++
+            6'b10_0001  :   begin
+                                mips_reg_we_local = 1;
+                                mpa_alu_func_sel_reg = `alu_add;
+                                mr_a1_out_instr_imm_en_local = 1;
+                                data_mem_re_local = 1;
+                                instr_imm_value_en_local = 6;
+                                instr_r_i_j_type_local = 1;
                             end
             // LUI ( MIPS I ) [ Load Upper Immediate ]
             // +++++++++++++++++++++++++++++++++++++++
@@ -362,6 +395,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                 mr_a1_out_instr_imm_en_local = 1;
                                 data_mem_re_local = 1;
                                 instr_imm_value_en_local = 4;
+                                instr_r_i_j_type_local = 1;
                             end
             // SB ( MIPS I ) [ Store Byte ]
             // ++++++++++++++++++++++++++++
@@ -396,13 +430,20 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
         end
         else
         begin
-            pc_p <= pc_n;
+            if( mem_debug )
+            begin
+                pc_p <= RESET_PC_ADDRESS; // TODO Check how a core realises from where to start the program execution. For now just start from 0 by default.
+            end
+            else
+            begin
+                pc_p <= pc_n;
+            end
         end
     end
 
     always@( * ) // Program Counter Next Address Selection
     begin
-        pc_n = { pc_p + 1'b1 }; // Default Rule
+        pc_n = { pc_p + 3'd4 }; // Default Rule
     end
 
     // MIPS Reg Input Address Mux
@@ -418,12 +459,13 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
             instr2mr_a1_addr_local = instr_mem_dout[20:16]; // rt
         end
         instr2mr_a0_addr_local = instr_mem_dout[25:21]; // rs
-        instr2mr_a2_addr_local = instr_mem_dout[15:11]; // rd in R type and rt in I type TODO
+        instr2mr_a2_addr_local = ( instr_r_i_j_type_gate == 2'd1 /* I Type Check */ ) ? instr_mem_dout[20:16] : instr_mem_dout[15:11]; // rd in R type and rt in I type TODO
     end
 
     assign instr2mr_a0_addr_gate = instr2mr_a0_addr_local;
     assign instr2mr_a1_addr_gate = instr2mr_a1_addr_local;
     assign instr2mr_a2_addr_gate = ( mem_debug ) ? addr : instr2mr_a2_addr_local;
+    assign instr_r_i_j_type_gate = instr_r_i_j_type_local;
 
     // Instruction Memory Instance
     // +++++++++++++++++++++++++++
@@ -435,7 +477,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                     (
                         .HW_RSTn( HW_RSTn ),
                         .CLK( mem_debug_clk_gate ),
-                        .addr( pc2instr_mem_addr ), // PC to Instruction Memory
+                        .addr( {pc2instr_mem_addr[31:2], 2'b00} /* Byte Addressable */ ), // PC to Instruction Memory
                         .WE( instr_mem_we_gate ),
                         .data_in( din ), // Instr Mem Debug Data In
                         .data_out( instr_mem_dout ) // Instr Mem Debug Data Out
@@ -488,7 +530,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                     (   
                         .HW_RSTn( HW_RSTn ),
                         .CLK( mem_debug_clk_gate ),
-                        .addr( dm_addr_in_gate ), // TODO
+                        .addr( {dm_addr_in_gate[31:2], 2'b00} /* Byte Addressable */ ), // TODO
                         .data_in( dm_data_in_gate ),
                         .WE( data_mem_we_gate ),
                         .RE( data_mem_re_gate ),

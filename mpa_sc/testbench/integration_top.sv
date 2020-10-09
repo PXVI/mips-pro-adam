@@ -121,7 +121,7 @@ module integration_top;
     
                 load_mips_im_code_b();
                 write_mpa_im( 1 );
-                rand_dm_reg_and_load(,,1);
+                rand_dm_reg_and_load(0,0,1);
                 write_mpa_dm( 1 );
 
                 read_mpa_im();
@@ -439,11 +439,18 @@ module integration_top;
             tb_dm_mem[i] = $urandom_range( min, max );
         end
 
+        if( !min && !max )
+        begin
+            for( int i = 0; i < DM_CAPACITY; i++ )
+            begin
+                tb_dm_mem[i] = $urandom;
+            end
+        end
+
         if( show_data )
         begin
             for( int i = 0; i < DM_CAPACITY; i++ )
             begin
-                tb_dm_mem[i] = $urandom_range( min, max );
                 $display( " %8d ## [ SIMDE ][ DM ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) : { Testbench Local Debug }", $time, i, tb_dm_mem[i][31:24], tb_dm_mem[i][23:16], tb_dm_mem[i][15:8], tb_dm_mem[i][7:0], tb_dm_mem[i] );
             end
         end
