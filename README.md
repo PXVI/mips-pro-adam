@@ -13,6 +13,7 @@ I will be using the MIPS ISA, to which extent, I do not know. Primary goal is to
 <br />
 This is the IP checklist for the time being. Eventually, I will add a few more things as I figure out the proper design flow. As of now, my primary focus is implementing the mandatory instructions and provide proper debug access feature.<br />
 <br />
+
 - [ ] Design
   - [X] Instruction Memory
   - [X] Data Memory
