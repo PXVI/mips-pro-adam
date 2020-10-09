@@ -26,7 +26,7 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
       - [ ] XOR
       - [ ] OR
       - [ ] NOR
-    - [ ] Immideate
+    - [ ] Immideate Type
       - [X] LW
       - [X] LH
       - [X] LHU
@@ -35,7 +35,7 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
       - [ ] SB
       - [ ] SH
       - [ ] SW
-    - [ ] Jump
+    - [ ] Jump Type
 - [X] Testbench
 - [ ] Test Suite ( Custom )
 - [ ] Miscellaneous
