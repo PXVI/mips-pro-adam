@@ -82,18 +82,16 @@ module mpa_data_mem #(  parameter   DATA_CAPACITY = 128,
 
     always@( * )
     begin
+        for( i = 0; i < (DATA_CAPACITY*(DATA_WIDTH/GRANULARITY)); i = i + 1 )
+        begin
+            mem_n[i] = mem_p[i]; // By default
+        end
+
         if( WE )
         begin
             for( j = 0; j < (DATA_WIDTH/GRANULARITY) + (DATA_WIDTH%GRANULARITY); j = j + 1 )
             begin
-                mem_n[addr%(DATA_CAPACITY*(DATA_WIDTH/GRANULARITY)+j)] = data_in[GRANULARITY*(((DATA_WIDTH/GRANULARITY)+(DATA_WIDTH%GRANULARITY)-1)-j)+:GRANULARITY]; // 0 : data_in[31:24], 1 : data_in[23:26], 2 : data_in[15:8], 3 : data_in[7:0]
-            end
-        end
-        else
-        begin
-            for( i = 0; i < (DATA_CAPACITY*(DATA_WIDTH/GRANULARITY)); i = i + 1 )
-            begin
-                mem_n[i] = mem_p[i];
+                mem_n[(addr+j)%(DATA_CAPACITY*(DATA_WIDTH/GRANULARITY))] = data_in[GRANULARITY*( (DATA_WIDTH/GRANULARITY) + (DATA_WIDTH%GRANULARITY) - 1 - j )+:GRANULARITY]; // 0 : data_in[31:24], 1 : data_in[23:26], 2 : data_in[15:8], 3 : data_in[7:0]
             end
         end
     end
@@ -101,7 +99,7 @@ module mpa_data_mem #(  parameter   DATA_CAPACITY = 128,
     generate
         for( k = 0; k < (DATA_WIDTH/GRANULARITY) + (DATA_WIDTH%GRANULARITY); k = k + 1 )
         begin
-            assign data_out[GRANULARITY*(((DATA_WIDTH/GRANULARITY)+(DATA_WIDTH%GRANULARITY)-1)-k)+:GRANULARITY] = ( RE ) ? mem_p[addr%(DATA_CAPACITY*(DATA_WIDTH/GRANULARITY)+k)] : 8'b0;
+            assign data_out[GRANULARITY*(((DATA_WIDTH/GRANULARITY)+(DATA_WIDTH%GRANULARITY)-1)-k)+:GRANULARITY] = ( RE ) ? mem_p[(addr+k)%(DATA_CAPACITY*(DATA_WIDTH/GRANULARITY))] : 8'b0;
         end
     endgenerate
 

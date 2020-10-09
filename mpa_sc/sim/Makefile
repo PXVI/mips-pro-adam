@@ -174,3 +174,11 @@ lint:
 	$(WALL_ARG) \
 	--lint-only;
 	@echo "Linting Complete!"
+
+# MIPS Misc Files ( IM, DM, MR load files )
+# --------------------------------------------
+gen_mpa_files:
+	@echo "Removing old misc MPA MIPS files..."
+	@rm -rf mpa_mips_load_dm_data.bin mpa_mips_load_im_program.bin mpa_mips_load_mr.bin;
+	@touch mpa_mips_load_dm_data.bin mpa_mips_load_im_program.bin mpa_mips_load_mr.bin;
+	@echo "Created new misc MPA MIPS files..."

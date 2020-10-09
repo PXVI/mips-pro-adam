@@ -51,7 +51,10 @@
 module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                     INSTR_WIDTH = 32,
                                     ADDRESS_WIDTH = 32,
-                                    RESET_PC_ADDRESS = 32'd0
+                                    RESET_PC_ADDRESS = 32'd0,
+                                    IM_CAPACITY = 32,
+                                    MR_CAPACITY = 32, // Fixed Value
+                                    DM_CAPACITY = 32
                 )
                 (
                                     input HW_RSTn,
@@ -138,7 +141,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     // +++++++++++++++++++++
     wire [ADDRESS_WIDTH-1:0] pc2instr_mem_addr;
 
-    assign mem_debug_clk_gate = ( mem_debug ) ? 1'b0 /* Optimize */ : CLK;
+    assign mem_debug_clk_gate = ( mem_debug ) ? ( debug_we ) ? CLK : 1'b0 /* Optimize */ : CLK;
     assign instr_mem_we_gate = ( mem_debug ) ? ( debug_func == 2'd1 ) ? debug_we : 1'b0 : instr_mem_we_local; // Debug Supported
     assign mips_reg_we_gate = (  mem_debug ) ? ( debug_func == 2'd3 ) ? debug_we : 1'b0 : mips_reg_we_local; // Debug Supported
     assign data_mem_we_gate = ( mem_debug ) ? ( debug_func == 2'd2 ) ? debug_we : 1'b0 : data_mem_we_local; // Debug Supported 
@@ -425,7 +428,8 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     // Instruction Memory Instance
     // +++++++++++++++++++++++++++
     mpa_instr_mem   #(  .ADDRESS_WIDTH( ADDRESS_WIDTH ),
-                        .INSTR_WIDTH( INSTR_WIDTH )
+                        .INSTR_WIDTH( INSTR_WIDTH ),
+                        .INSTR_CAPACITY( IM_CAPACITY )
                     )
                     instr_mem_inst
                     (
@@ -477,7 +481,8 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     // Data Memory Instance
     // ++++++++++++++++++++
     mpa_data_mem    #(  .DATA_WIDTH( DATA_WIDTH ),
-                        .ADDRESS_WIDTH( ADDRESS_WIDTH )
+                        .ADDRESS_WIDTH( ADDRESS_WIDTH ),
+                        .DATA_CAPACITY( DM_CAPACITY )
                     )
                     mpa_data_mem_inst
                     (   

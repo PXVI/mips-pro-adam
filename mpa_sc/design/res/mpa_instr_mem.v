@@ -93,7 +93,7 @@ module mpa_instr_mem #( parameter   INSTR_CAPACITY = 64,
         begin
             for( j = 0; j < (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS); j = j + 1 )
             begin
-                instr_mem_n[addr%(INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS))+j] = data_in[ADDRESS_ACCESS*( (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS) - 1 - j )+:ADDRESS_ACCESS];
+                instr_mem_n[(addr+j)%(INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS))] = data_in[ADDRESS_ACCESS*( (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS) - 1 - j )+:ADDRESS_ACCESS];
             end
         end
     end
@@ -102,7 +102,7 @@ module mpa_instr_mem #( parameter   INSTR_CAPACITY = 64,
     begin
         for( k = 0; k < (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS); k = k + 1 )
         begin
-            temp_out[(ADDRESS_ACCESS*((INSTR_WIDTH/ADDRESS_ACCESS)+(INSTR_WIDTH%ADDRESS_ACCESS)-1-k))+:ADDRESS_ACCESS] = instr_mem_p[addr%(INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS))+k]; // The Mod is added to make sure the actual evaluated address is inside the valid range of addresses
+            temp_out[(ADDRESS_ACCESS*((INSTR_WIDTH/ADDRESS_ACCESS)+(INSTR_WIDTH%ADDRESS_ACCESS)-1-k))+:ADDRESS_ACCESS] = instr_mem_p[(addr+k)%(INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS))]; // The Mod is added to make sure the actual evaluated address is inside the valid range of addresses
         end
     end
 

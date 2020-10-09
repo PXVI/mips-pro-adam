@@ -101,6 +101,11 @@ module mpa_mips_reg (
 
     always@( * )
     begin
+        for( i = 1; i < 32; i = i + 1 )
+        begin
+            mem_n[i] = mem_p[i];
+        end
+
         if( WE )
         begin
             mem_n[A2] = DIN; // TODO : There is an exception that must be raised if mem[0] is being written ( I think )
