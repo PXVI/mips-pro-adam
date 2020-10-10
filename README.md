@@ -36,8 +36,21 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
       - [ ] SH
       - [ ] SW
     - [ ] Jump Type
-- [X] Testbench
+- [ ] Testbench
+  - [ ] Systemverilog based functional model of MIPS32
+  - [X] Debug tasks to write and read data into the IP
+  - [X] Scoreboarding tasks
+  - [X] Scoreboarding displays
+  - [ ] Stimulus Randomization
+  - [X] Simulation run result displays / infos
 - [ ] Test Suite ( Custom )
+  - [ ] Basic Instructions Data Path Only Tests
+    - [X] Load Instructions
+    - [ ] Store Instructions
+    - [ ] Register Arithematic Instructions
+    - [ ] Immideate Arithematic Instructions
+  - [ ] Appication Based Tests
+  - [ ] Stress Testing Tests
 - [ ] Miscellaneous
   - [X] Makefile
   - [X] Debug Logs
