@@ -153,7 +153,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     assign instr2mr_a0_addr_gate = pc2instr_mem_addr[25:21]; // A0
     assign instr2mr_a0_addr_gate = pc2instr_mem_addr[20:16]; // A1
 
-    always@( * ) // MIPS Register DIN Multiplexer
+    always@( * ) // MIPS Register DIN Data Rearranger & Multiplexer // TODO This can be optimized
     begin
         instr_imm2mr_reg = { 32'b0 };
 
@@ -175,6 +175,9 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                         end
             6       :   begin // Load halfword sign ext
                             instr_imm2mr_reg = { {16{data_mem_dout[15]}}, data_mem_dout[15:0] };
+                        end
+            7       :   begin // Load upper immideate
+                            instr_imm2mr_reg = { instr_mem_dout[15:0] , {16{1'b0}} };
                         end
             default :   begin
                         end
@@ -385,7 +388,8 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
             // +++++++++++++++++++++++++++++++++++++++
             6'b00_1111  :   begin
                                 mips_reg_we_local = 1;
-                                instr_imm_value_en_local = 1;
+                                instr_imm_value_en_local = 7;
+                                instr_r_i_j_type_local = 1;
                             end
             // LW ( MIPS I ) [ Load Word ]
             // +++++++++++++++++++++++++++

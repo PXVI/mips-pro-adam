@@ -30,6 +30,9 @@
 #
 # ----------------------------------------------------------------------------------- */
 
+# Switch Declarations
+# ----------------------
+
 TESTNAME?=NO_TEST
 
 TB_FILENAME?=./../testbench/integration_top.sv
@@ -38,23 +41,45 @@ IP_FILENAME?=./../design/res/mpa_mips.v
 COMPILE_FILELIST?=./compile_filelist/compile_filelist.list
 
 TOP_NAME?=integration_top
+DUMP?=0
+LINT?=0
+WALL?=0
+DESIGN_ONLY?=0
 
-ifdef $(DO_FILE)
+# Define Switch Decl
+# ----------------------
+
+ifdef IMFILE
+IMFILE_ARG="+IM_FILE=$(IMFILE)"
+else
+IMFILE_ARG=
+endif
+
+ifdef MRFILE
+MRFILE_ARG=+MR_FILE=$(MRFILE)
+else
+MRFILE_ARG=
+endif
+
+ifdef DMFILE
+DMFILE_ARG=+DM_FILE=$(DMFILE)
+else
+DMFILE_ARG=
+endif
+
+ifdef DO_FILE
 DO_CMD= -do $(DO_FILE)
 else
 DO_CMD= -do "run -all; quit -f"
 endif
 
-DUMP?=0
+# Argument Declarations
+# ----------------------
+
 ifeq ($(DUMP),1)
 DUMP_ARG=+define+GEN_DUMP
 else
 endif
-
-LINT?=0
-WALL?=0
-
-DESIGN_ONLY?=0
 
 ifeq ($(DESIGN_ONLY),1)
 FILENAME?=$IP_MIPS_MPA_32/res/mpa_mips.v
@@ -121,6 +146,9 @@ sim:
 	-l $(TESTNAME).log \
 	-64 \
 	-c \
+	$(IMFILE_ARG) \
+	$(MRFILE_ARG) \
+	$(DMFILE_ARG) \
 	+define+UVM_NO_DPI \
 	+UVM_TESTNAME=$(TESTNAME);
 

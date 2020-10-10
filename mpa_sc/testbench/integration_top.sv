@@ -68,6 +68,15 @@ module integration_top;
     bit [DATA_WIDTH-1:0] tb_im_mem [IM_CAPACITY];
     bit [DATA_WIDTH-1:0] tb_dm_mem [DM_CAPACITY];
     bit [DATA_WIDTH-1:0] tb_mr_mem [MR_CAPACITY];
+    string load_im_filename;
+    string load_dm_filename;
+    string load_mr_filename;
+
+    bit [DATA_WIDTH-1:0] sb_im_mem [IM_CAPACITY]; // Will be used with the functional model of the MIPS core
+    bit [DATA_WIDTH-1:0] sb_dm_mem [DM_CAPACITY]; // Will be used with the functional model of the MIPS core
+    bit [DATA_WIDTH-1:0] sb_mr_mem [MR_CAPACITY]; // Will be used with the functional model of the MIPS core
+
+    bit [31:0] mips_model_pc;
     
     // IP Instantiations
     // -----------------
@@ -95,6 +104,25 @@ module integration_top;
                         .mem_debug( ip_mem_debug )
                     );
     
+    initial
+    begin
+        $display( " %8d ## ------------------------------------------------------------------------- ", $time );
+        $display( " %8d ## [ SETUP ] Pre Simulation Configuration ", $time );
+        $display( " %8d ## ------------------------------------------------------------------------- ", $time );
+        if( $value$plusargs( "IM_FILE=%s", load_im_filename ) )
+        begin
+            $display( " %8d ## [ SETUP ] %s ", $time, $sformatf( "IM File Loaded : %s", load_im_filename ) );
+        end
+        if( $value$plusargs( "DM_FILE=%s", load_dm_filename ) )
+        begin
+            $display( " %8d ## [ SETUP ] %s ", $time, $sformatf( "DM File Loaded : %s", load_dm_filename ) );
+        end
+        if( $value$plusargs( "MR_FILE=%s", load_mr_filename ) )
+        begin
+            $display( " %8d ## [ SETUP ] %s ", $time, $sformatf( "MR File Loaded : %s", load_mr_filename ) );
+        end
+        $display( " %8d ## ------------------------------------------------------------------------- ", $time );
+    end
     
     initial
     begin
@@ -104,22 +132,8 @@ module integration_top;
             end
             begin // Stimulus
                 hw_reset( 100 );
-                delay( 2 );
     
-                //read_mpa_im();
-                //read_mpa_dm();
-                //read_mpa_mr();
-                
-                //write_mpa_im();
-                //read_mpa_im();
-                
-                //write_mpa_dm();
-                //read_mpa_dm();
-                
-                //write_mpa_mr();
-                //read_mpa_mr();
-    
-                load_mips_im_code_b();
+                load_mips_im_code_b( load_im_filename );
                 write_mpa_im( 1 );
                 rand_dm_reg_and_load(0,0,1);
                 write_mpa_dm( 1 );
@@ -155,6 +169,58 @@ module integration_top;
     // Test Subroutines
     // ----------------
     
+    task reset_mips_model_pc();
+        mips_model_pc = 1;
+    endtask
+
+    task run_mips_model( int num_instr = 0 );
+        if( !num_instr )
+        begin
+            // Do Nothing
+        end
+        else
+        begin
+            for( int i = 0; i < num_instr; i++ )
+            begin
+                bit [31:0] temp_pc;
+
+                temp_pc = mips_model_pc;
+
+                // Execute the instruction based on the SB Memory registers
+                // ( These are BFM Local Registers )
+                // --------------------------------------------------------
+                
+                if( !sb_im_mem[mips_model_pc[31:26]] ) // Special
+                begin
+                    case( sb_im_mem[mips_model_pc[5:0]] ) // Function
+                        default     :   begin
+                                            // Do nothing
+                                        end
+                    endcase
+                end
+                else // Others
+                begin
+                    case( sb_im_mem[mips_model_pc[31:26]] )
+                        default     :   begin
+                                            // Do Nothing
+                                        end
+                    endcase
+                end
+
+                // PC Updation
+                // -----------
+                if( mips_model_pc == temp_pc )
+                begin
+                    mips_model_pc = ( temp_pc + 1 ) % IM_CAPACITY;
+                end
+                else
+                begin
+                    mips_model_pc = ( mips_model_pc ) % IM_CAPACITY;
+                end
+            end
+        end
+    endtask
+
     task start_clk( integer time_period = 5 );
         integer tp;
         tp = time_period;
@@ -223,7 +289,7 @@ module integration_top;
         $display( " %8d ## [ DEBUG ] Debug Mode is disabled", $time );
     endtask
     
-    task read_mpa_im();
+    task read_mpa_im( bit load_tb_mem = 0 );
         integer i;
     
         enable_debug_mode( 1 );
@@ -238,12 +304,16 @@ module integration_top;
             ip_debug_re <= 1;
             @( posedge ip_CLK );
             $display( " %8d ## [ DEBUG ][ IM ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) ", $time, ip_addr, ip_dout[31:24], ip_dout[23:16], ip_dout[15:8], ip_dout[7:0], ip_dout );
+            if( load_tb_mem )
+            begin
+                tb_im_mem[i/4] = ip_dout;
+            end
         end
     
         disable_debug_mode();
     endtask
     
-    task read_mpa_dm();
+    task read_mpa_dm( bit load_tb_mem = 0 );
         integer i;
     
         enable_debug_mode( 2 );
@@ -258,12 +328,16 @@ module integration_top;
             ip_debug_re <= 1;
             @( posedge ip_CLK );
             $display( " %8d ## [ DEBUG ][ DM ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) ", $time, ip_addr, ip_dout[31:24], ip_dout[23:16], ip_dout[15:8], ip_dout[7:0], ip_dout );
+            if( load_tb_mem )
+            begin
+                tb_dm_mem[i/4] = ip_dout;
+            end
         end
     
         disable_debug_mode();
     endtask
     
-    task read_mpa_mr();
+    task read_mpa_mr( bit load_tb_mem = 0 );
         integer i;
     
         enable_debug_mode( 3 );
@@ -278,6 +352,10 @@ module integration_top;
             ip_debug_re <= 1;
             @( posedge ip_CLK );
             $display( " %8d ## [ DEBUG ][ MR ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) ", $time, ip_addr, ip_dout[31:24], ip_dout[23:16], ip_dout[15:8], ip_dout[7:0], ip_dout );
+            if( load_tb_mem )
+            begin
+                tb_mr_mem[i/4] = ip_dout;
+            end
         end
     
         disable_debug_mode();
@@ -302,6 +380,7 @@ module integration_top;
                 ip_din <= tb_im_mem[i/4];
                 @( posedge ip_CLK );
                 //$display( " %8d ## [ DEBUG ][ IM ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
+                sb_im_mem[i/4] = ip_din;
             end
         end
         else
@@ -315,6 +394,7 @@ module integration_top;
                 ip_din <= $urandom;
                 @( posedge ip_CLK );
                 $display( " %8d ## [ DEBUG ][ IM ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
+                sb_im_mem[i/4] = ip_din;
             end
         end
     
@@ -339,6 +419,7 @@ module integration_top;
                 ip_din <= tb_dm_mem[i/4];
                 @( posedge ip_CLK );
                 //$display( " %8d ## [ DEBUG ][ DM ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
+                sb_dm_mem[i/4] = ip_din;
             end
         end
         else
@@ -352,6 +433,7 @@ module integration_top;
                 ip_din <= $urandom;
                 @( posedge ip_CLK );
                 $display( " %8d ## [ DEBUG ][ DM ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
+                sb_dm_mem[i/4] = ip_din;
             end
         end
     
@@ -374,23 +456,25 @@ module integration_top;
             ip_din <= $urandom;
             @( posedge ip_CLK );
             $display( " %8d ## [ DEBUG ][ MR ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
+            sb_dm_mem[i/4] = ip_din;
         end
     
         disable_debug_mode();
     endtask
     
     task load_mips_im_code_b( string filename = "mpa_mips_load_im_program.bin" );
-        if( filename == "mpa_mips_load_im_program.bin" )
+        if( filename != "" )
         begin
             $readmemb( filename, tb_im_mem );
         end
         else
         begin
-            $readmemb( filename, tb_im_mem );
-            for( int i = 0; i < IM_CAPACITY; i++ )
-            begin
-                $display( "%32b ( %0d )", tb_im_mem[i], tb_im_mem[i] );
-            end
+            //$readmemb( filename, tb_im_mem );
+            //for( int i = 0; i < IM_CAPACITY; i++ )
+            //begin
+            //    tb_im_mem[i]
+            //    $display( "%32b ( %0d )", tb_im_mem[i], tb_im_mem[i] );
+            //end
         end
     endtask
     
