@@ -45,6 +45,7 @@ DUMP?=0
 LINT?=0
 WALL?=0
 DESIGN_ONLY?=0
+TDEBUG?=0
 
 # Define Switch Decl
 # ----------------------
@@ -75,6 +76,18 @@ endif
 
 # Argument Declarations
 # ----------------------
+
+ifeq ($(SB),1)
+SB_ARG=+SBENABLE
+else
+SB_ARG=
+endif
+
+ifeq ($(TDEBUG),1)
+TDEBUG_ARG=+TDEBUG
+else
+TDEBUG_ARG=
+endif
 
 ifeq ($(DUMP),1)
 DUMP_ARG=+define+GEN_DUMP
@@ -149,6 +162,8 @@ sim:
 	$(IMFILE_ARG) \
 	$(MRFILE_ARG) \
 	$(DMFILE_ARG) \
+	$(TDEBUG_ARG) \
+	$(SB_ARG) \
 	+define+UVM_NO_DPI \
 	+UVM_TESTNAME=$(TESTNAME);
 

@@ -37,6 +37,16 @@
 `include "mpa_mips.v"
 
 // --------------------------------------------
+// Defines
+// --------------------------------------------
+
+`define tdebug( x ) \
+    if( tdebug_en ) \
+    begin \
+        $display( " %8d ## [ TERML_DEBUG ] %s", $time, x ); \
+    end
+
+// --------------------------------------------
 
 module integration_top;
 
@@ -65,6 +75,9 @@ module integration_top;
     // Testbench Variables / Registers
     // -------------------------------
     
+    bit tdebug_en, sb_enable;
+    bit error_rcvd;
+
     bit [DATA_WIDTH-1:0] tb_im_mem [IM_CAPACITY];
     bit [DATA_WIDTH-1:0] tb_dm_mem [DM_CAPACITY];
     bit [DATA_WIDTH-1:0] tb_mr_mem [MR_CAPACITY];
@@ -122,6 +135,18 @@ module integration_top;
             $display( " %8d ## [ SETUP ] %s ", $time, $sformatf( "MR File Loaded : %s", load_mr_filename ) );
         end
         $display( " %8d ## ------------------------------------------------------------------------- ", $time );
+        if( $test$plusargs( "SBENABLE" ) )
+        begin
+            sb_enable = 1;
+            $display( " %8d ## [ SETUP ] %s ", $time, $sformatf( "BFM Scoreboarding Enabled" ) );
+            $display( " %8d ## ------------------------------------------------------------------------- ", $time );
+        end
+        if( $test$plusargs( "TDEBUG" ) )
+        begin
+            tdebug_en = 1;
+            $display( " %8d ## [ SETUP ] %s ", $time, $sformatf( "Terminal Debug Enabled" ) );
+            $display( " %8d ## ------------------------------------------------------------------------- ", $time );
+        end
     end
     
     initial
@@ -138,14 +163,15 @@ module integration_top;
                 rand_dm_reg_and_load(0,0,1);
                 write_mpa_dm( 1 );
 
-                read_mpa_im();
-                read_mpa_dm();
+                read_mpa_im( , sb_enable);
+                read_mpa_dm( , sb_enable);
 
                 run_cpu_instr();
 
-                read_mpa_im();
-                read_mpa_mr();
-                read_mpa_dm();
+                read_mpa_im( 1, sb_enable);
+                read_mpa_mr( 1, sb_enable);
+                read_mpa_dm( 1, sb_enable);
+                eval_sb_values();
                 
                 end_sim();
             end
@@ -155,7 +181,7 @@ module integration_top;
     initial // End Simulation Condition
     begin
         #100000000;
-        $finish;
+        end_sim(1);
     end
     
     `ifdef GEN_DUMP
@@ -183,6 +209,15 @@ module integration_top;
             for( int i = 0; i < num_instr; i++ )
             begin
                 bit [31:0] temp_pc;
+                bit [4:0] rs,rt,rd;
+                bit [15:0] imm;
+                bit [25:0] addr;
+
+                rs = sb_im_mem[mips_model_pc/4][25:21];
+                rt = sb_im_mem[mips_model_pc/4][20:16];
+                rd = sb_im_mem[mips_model_pc/4][15:11];
+                imm = sb_im_mem[mips_model_pc/4][15:0];
+                addr = sb_im_mem[mips_model_pc/4][25:0];
 
                 temp_pc = mips_model_pc;
 
@@ -190,35 +225,229 @@ module integration_top;
                 // ( These are BFM Local Registers )
                 // --------------------------------------------------------
                 
-                if( !sb_im_mem[mips_model_pc[31:26]] ) // Special
+                if( sb_im_mem[mips_model_pc/4][31:26] == 6'b00_0000 ) // Special
                 begin
-                    case( sb_im_mem[mips_model_pc[5:0]] ) // Function
+                    case( sb_im_mem[mips_model_pc/4][5:0] ) // Function
+                        // ADD ( MIPS I )
+                        // ++++++++++++++
+                        6'b10_0000  :   begin
+                                        end
+                        // ADDU ( MIPS I )
+                        // +++++++++++++++
+                        6'b10_0001  :   begin
+                                        end
+                        // SUB ( MIPS I )
+                        // ++++++++++++++
+                        6'b10_0010  :   begin
+                                        end
+                        // SUBU ( MIPS I )
+                        // +++++++++++++++
+                        6'b10_0011  :   begin
+                                        end
+                        // SLT ( MIPS I )
+                        // ++++++++++++++
+                        6'b10_1010  :   begin
+                                        end
+                        // SLTU ( MIPS I )
+                        // +++++++++++++++
+                        6'b10_1011  :   begin
+                                        end
+                        // AND ( MIPS I )
+                        // ++++++++++++++
+                        6'b10_0100  :   begin
+                                        end
+                        // OR ( MIPS I )
+                        // +++++++++++++
+                        6'b10_0101  :   begin
+                                        end
+                        // XOR ( MIPS I )
+                        // ++++++++++++++
+                        6'b10_0110  :   begin
+                                        end
+                        // NOR ( MIPS I )
+                        // ++++++++++++++
+                        6'b10_0111  :   begin
+                                        end
+                        // JR ( MIPS I ) [ Jump Register ]
+                        // +++++++++++++++++++++++++++++++
+                        6'b00_1000  :   begin
+                                        end
+                        // SLL ( MIPS I ) [ Shift Left Logical ]
+                        // +++++++++++++++++++++++++++++++++++++
+                        6'b00_0000  :   begin
+                                        end
+                        // SRL ( MIPS I ) [ Shift Right Logical ]
+                        // ++++++++++++++++++++++++++++++++++++++
+                        6'b00_0010  :   begin
+                                        end
                         default     :   begin
                                             // Do nothing
+                                            `tdebug( $sformatf( "Special Default" ) )
                                         end
                     endcase
                 end
                 else // Others
                 begin
-                    case( sb_im_mem[mips_model_pc[31:26]] )
+                    case( sb_im_mem[mips_model_pc/4][31:26] )
+                        // ADDI ( MIPS I )
+                        // +++++++++++++++
+                        6'b00_1000  :   begin
+                                        end
+                        // ADDIU ( MIPS I )
+                        // ++++++++++++++++
+                        6'b00_1001  :   begin
+                                        end
+                        // ANDI ( MIPS I )
+                        // +++++++++++++++
+                        6'b00_1100  :   begin
+                                        end
+                        // ORI ( MIPS I )
+                        // ++++++++++++++
+                        6'b00_1101  :   begin
+                                        end
+                        // SLTI ( MIPS I ) [ Set Less Than Immdediate ]
+                        // ++++++++++++++++++++++++++++++++++++++++++++
+                        6'b00_1010  :   begin
+                                        end
+                        // SLTIU ( MIPS I ) [ Set Less Than Immediate Unsigned ]
+                        // +++++++++++++++++++++++++++++++++++++++++++++++++++++
+                        6'b00_1011  :   begin
+                                        end
+                        // BEQ ( MIPS I ) [ Branch On Equal ]
+                        // ++++++++++++++++++++++++++++++++++
+                        6'b00_0100  :   begin
+                                        end
+                        // BNE ( MIPS I ) [ Branch On Not Equal ]
+                        // ++++++++++++++++++++++++++++++++++++++
+                        6'b00_0101  :   begin
+                                        end
+                        // LBU ( MIPS I ) [ Load Byte Unsigned ]
+                        // +++++++++++++++++++++++++++++++++++++
+                        6'b10_0100  :   begin
+                                        end
+                        // LB [ Load Byte Sign Ext ]
+                        // +++++++++++++++++++++++++
+                        6'b10_0000  :   begin
+                                        end
+                        // LHU ( MIPS I ) [ Load Half Word Unsigned ]
+                        // ++++++++++++++++++++++++++++++++++++++++++
+                        6'b10_0101  :   begin
+                                        end
+                        // LH [ Load Half Word Sign Ext ]
+                        // ++++++++++++++++++++++++++++++
+                        6'b10_0001  :   begin
+                                        end
+                        // LUI ( MIPS I ) [ Load Upper Immediate ]
+                        // +++++++++++++++++++++++++++++++++++++++
+                        6'b00_1111  :   begin
+                                        end
+                        // LW ( MIPS I ) [ Load Word ]
+                        // +++++++++++++++++++++++++++
+                        6'b10_0011  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+                                            temp_addr = ({imm+sb_mr_mem[rs]});
+                                            temp_by4_addr = temp_addr/4;
+
+                                            sb_mr_mem[rt] = sb_dm_mem[temp_by4_addr];
+                                            `tdebug( $sformatf( "LW Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr ( %0d ), Mem ( %0d ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, temp_addr, sb_dm_mem[temp_addr], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
+                                        end
+                        // SB ( MIPS I ) [ Store Byte ]
+                        // ++++++++++++++++++++++++++++
+                        6'b10_1000  :   begin
+                                        end
+                        // SH ( MIPS I ) [ Store Half Word ]
+                        // +++++++++++++++++++++++++++++++++
+                        6'b10_1001  :   begin
+                                        end
+                        // SW ( MIPS I ) [ Store Word ]
+                        // ++++++++++++++++++++++++++++
+                        6'b10_1011  :   begin
+                                        end
                         default     :   begin
                                             // Do Nothing
+                                            `tdebug( $sformatf( "Non Special Default" ) )
                                         end
                     endcase
                 end
 
                 // PC Updation
                 // -----------
+                //`tdebug( $sformatf( "Old PC : %0d", temp_pc ) )
                 if( mips_model_pc == temp_pc )
                 begin
-                    mips_model_pc = ( temp_pc + 1 ) % IM_CAPACITY;
+                    mips_model_pc = ( temp_pc + 4 );
                 end
                 else
                 begin
-                    mips_model_pc = ( mips_model_pc ) % IM_CAPACITY;
+                    mips_model_pc = ( mips_model_pc );
                 end
+                //`tdebug( $sformatf( "New PC : %0d", mips_model_pc ) )
             end
         end
+    endtask
+
+    task eval_sb_values( int mode = 0 );
+        $display( " %8d ## [ DEBUG ][    ] ", $time ); 
+        for( int i = 0; i < IM_CAPACITY*4; i = i + 4 )
+        begin
+            if( sb_enable )
+            begin
+                if( tb_im_mem[i/4] != sb_im_mem[i/4] )
+                begin
+                    $display( " %8d ## [ CHECK ][ IM ] Addr : %8d, IM_Data : %8b_%8b_%8b_%8b ( %10d ) [X] SB_Data : %8b_%8b_%8b_%8b ( %10d )", $time, i, tb_im_mem[i/4][31:24], tb_im_mem[i/4][23:16], tb_im_mem[i/4][15:8], tb_im_mem[i/4][7:0], tb_im_mem[i/4], sb_im_mem[i/4][31:24], sb_im_mem[i/4][23:16], sb_im_mem[i/4][15:8], sb_im_mem[i/4][7:0], sb_im_mem[i/4] );
+                    error_rcvd = 1;
+                end
+                else
+                begin
+                    $display( " %8d ## [ CHECK ][ IM ] Addr : %8d, IM_Data : %8b_%8b_%8b_%8b ( %10d )  -  SB_Data : %8b_%8b_%8b_%8b ( %10d )", $time, i, tb_im_mem[i/4][31:24], tb_im_mem[i/4][23:16], tb_im_mem[i/4][15:8], tb_im_mem[i/4][7:0], tb_im_mem[i/4], sb_im_mem[i/4][31:24], sb_im_mem[i/4][23:16], sb_im_mem[i/4][15:8], sb_im_mem[i/4][7:0], sb_im_mem[i/4] );
+                end
+            end
+            else
+            begin
+                $display( " %8d ## [ SB_DB ][ IM ] Addr : %8d, Data : %8b_%8b_%8b_%8b ( %10d ) ", $time, i, sb_im_mem[i/4][31:24], sb_im_mem[i/4][23:16], sb_im_mem[i/4][15:8], sb_im_mem[i/4][7:0], sb_im_mem[i/4] );
+            end
+        end
+        $display( " %8d ## [ DEBUG ][    ] ", $time ); 
+        for( int i = 0; i < MR_CAPACITY; i = i + 1 )
+        begin
+            if( sb_enable )
+            begin
+                if( tb_mr_mem[i] != sb_mr_mem[i] )
+                begin
+                    $display( " %8d ## [ CHECK ][ MR ] Addr : %8d, MR_Data : %8b_%8b_%8b_%8b ( %10d ) [X] SB_Data : %8b_%8b_%8b_%8b ( %10d )", $time, i, tb_mr_mem[i][31:24], tb_mr_mem[i][23:16], tb_mr_mem[i][15:8], tb_mr_mem[i][7:0], tb_mr_mem[i], sb_mr_mem[i][31:24], sb_mr_mem[i][23:16], sb_mr_mem[i][15:8], sb_mr_mem[i][7:0], sb_mr_mem[i] );
+                    error_rcvd = 1;
+                end
+                else
+                begin
+                    $display( " %8d ## [ CHECK ][ MR ] Addr : %8d, MR_Data : %8b_%8b_%8b_%8b ( %10d )  -  SB_Data : %8b_%8b_%8b_%8b ( %10d )", $time, i, tb_mr_mem[i][31:24], tb_mr_mem[i][23:16], tb_mr_mem[i][15:8], tb_mr_mem[i][7:0], tb_mr_mem[i], sb_mr_mem[i][31:24], sb_mr_mem[i][23:16], sb_mr_mem[i][15:8], sb_mr_mem[i][7:0], sb_mr_mem[i] );
+                end
+            end
+            else
+            begin
+                $display( " %8d ## [ SB_DB ][ MR ] Addr : %8d, Data : %8b_%8b_%8b_%8b ( %10d ) ", $time, i, sb_mr_mem[i][31:24], sb_mr_mem[i][23:16], sb_mr_mem[i][15:8], sb_mr_mem[i][7:0], sb_mr_mem[i] );
+            end
+        end
+        $display( " %8d ## [ DEBUG ][    ] ", $time ); 
+        for( int i = 0; i < DM_CAPACITY*4; i = i + 4 )
+        begin
+            if( sb_enable )
+            begin
+                if( tb_dm_mem[i/4] != sb_dm_mem[i/4] )
+                begin
+                    $display( " %8d ## [ CHECK ][ DM ] Addr : %8d, DM_Data : %8b_%8b_%8b_%8b ( %10d ) [X] SB_Data : %8b_%8b_%8b_%8b ( %10d )", $time, i, tb_dm_mem[i/4][31:24], tb_dm_mem[i/4][23:16], tb_dm_mem[i/4][15:8], tb_dm_mem[i/4][7:0], tb_dm_mem[i/4], sb_dm_mem[i/4][31:24], sb_dm_mem[i/4][23:16], sb_dm_mem[i/4][15:8], sb_dm_mem[i/4][7:0], sb_dm_mem[i/4] );
+                    error_rcvd = 1;
+                end
+                else
+                begin
+                    $display( " %8d ## [ CHECK ][ DM ] Addr : %8d, DM_Data : %8b_%8b_%8b_%8b ( %10d )  -  SB_Data : %8b_%8b_%8b_%8b ( %10d )", $time, i, tb_dm_mem[i/4][31:24], tb_dm_mem[i/4][23:16], tb_dm_mem[i/4][15:8], tb_dm_mem[i/4][7:0], tb_dm_mem[i/4], sb_dm_mem[i/4][31:24], sb_dm_mem[i/4][23:16], sb_dm_mem[i/4][15:8], sb_dm_mem[i/4][7:0], sb_dm_mem[i/4] );
+                end
+            end
+            else
+            begin
+                $display( " %8d ## [ SB_DB ][ DM ] Addr : %8d, Data : %8b_%8b_%8b_%8b ( %10d ) ", $time, i, sb_dm_mem[i/4][31:24], sb_dm_mem[i/4][23:16], sb_dm_mem[i/4][15:8], sb_dm_mem[i/4][7:0], sb_dm_mem[i/4] );
+            end
+        end
+        $display( " %8d ## [ DEBUG ][    ] ", $time ); 
     endtask
 
     task start_clk( integer time_period = 5 );
@@ -256,15 +485,21 @@ module integration_top;
 
         $display( " %8d ## [ SIM_X ][    ] ", $time ); 
         $display( " %8d ## [ SIM_X ][    ] -----------------------------------------------------------------------------", $time ); 
-        $display( " %8d ## [ SIM_X ][    ] Simulation Started : The core will run for a total of %0d cycles", $time, instr_count ); 
+        $display( " %8d ## [ SIM_X ][    ] Simulation : The core will run for a total of %0d cycles", $time, instr_count ); 
         $display( " %8d ## [ SIM_X ][    ] -----------------------------------------------------------------------------", $time ); 
         $display( " %8d ## [ SIM_X ][    ] ", $time ); 
         @( negedge ip_CLK );
         repeat( instr_count )
         begin
             @( posedge ip_CLK );
+            run_mips_model( 1 );
         end
         @( negedge ip_CLK );
+        $display( " %8d ## [ SIM_X ][    ] ", $time ); 
+        $display( " %8d ## [ SIM_X ][    ] -----------------------------------------------------------------------------", $time ); 
+        $display( " %8d ## [ SIM_X ][    ] Simulation : Core Simulation Complete", $time ); 
+        $display( " %8d ## [ SIM_X ][    ] -----------------------------------------------------------------------------", $time ); 
+        $display( " %8d ## [ SIM_X ][    ] ", $time ); 
 
         enable_debug_mode();
     endtask
@@ -289,7 +524,7 @@ module integration_top;
         $display( " %8d ## [ DEBUG ] Debug Mode is disabled", $time );
     endtask
     
-    task read_mpa_im( bit load_tb_mem = 0 );
+    task read_mpa_im( bit load_tb_mem = 0, bit dis_disp = 1 );
         integer i;
     
         enable_debug_mode( 1 );
@@ -303,7 +538,10 @@ module integration_top;
             ip_addr <= i;
             ip_debug_re <= 1;
             @( posedge ip_CLK );
-            $display( " %8d ## [ DEBUG ][ IM ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) ", $time, ip_addr, ip_dout[31:24], ip_dout[23:16], ip_dout[15:8], ip_dout[7:0], ip_dout );
+            if( !dis_disp )
+            begin
+                $display( " %8d ## [ DEBUG ][ IM ] Addr : %8d, Data : %8b_%8b_%8b_%8b ( %10d ) ", $time, ip_addr, ip_dout[31:24], ip_dout[23:16], ip_dout[15:8], ip_dout[7:0], ip_dout );
+            end
             if( load_tb_mem )
             begin
                 tb_im_mem[i/4] = ip_dout;
@@ -313,7 +551,7 @@ module integration_top;
         disable_debug_mode();
     endtask
     
-    task read_mpa_dm( bit load_tb_mem = 0 );
+    task read_mpa_dm( bit load_tb_mem = 0, bit dis_disp = 1 );
         integer i;
     
         enable_debug_mode( 2 );
@@ -327,7 +565,10 @@ module integration_top;
             ip_addr <= i;
             ip_debug_re <= 1;
             @( posedge ip_CLK );
-            $display( " %8d ## [ DEBUG ][ DM ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) ", $time, ip_addr, ip_dout[31:24], ip_dout[23:16], ip_dout[15:8], ip_dout[7:0], ip_dout );
+            if( !dis_disp )
+            begin
+                $display( " %8d ## [ DEBUG ][ DM ] Addr : %8d, Data : %8b_%8b_%8b_%8b ( %10d ) ", $time, ip_addr, ip_dout[31:24], ip_dout[23:16], ip_dout[15:8], ip_dout[7:0], ip_dout );
+            end
             if( load_tb_mem )
             begin
                 tb_dm_mem[i/4] = ip_dout;
@@ -337,7 +578,7 @@ module integration_top;
         disable_debug_mode();
     endtask
     
-    task read_mpa_mr( bit load_tb_mem = 0 );
+    task read_mpa_mr( bit load_tb_mem = 0, bit dis_disp = 1 );
         integer i;
     
         enable_debug_mode( 3 );
@@ -351,10 +592,13 @@ module integration_top;
             ip_addr <= i;
             ip_debug_re <= 1;
             @( posedge ip_CLK );
-            $display( " %8d ## [ DEBUG ][ MR ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) ", $time, ip_addr, ip_dout[31:24], ip_dout[23:16], ip_dout[15:8], ip_dout[7:0], ip_dout );
+            if( !dis_disp )
+            begin
+                $display( " %8d ## [ DEBUG ][ MR ] Addr : %8d, Data : %8b_%8b_%8b_%8b ( %10d ) ", $time, ip_addr, ip_dout[31:24], ip_dout[23:16], ip_dout[15:8], ip_dout[7:0], ip_dout );
+            end
             if( load_tb_mem )
             begin
-                tb_mr_mem[i/4] = ip_dout;
+                tb_mr_mem[i] = ip_dout;
             end
         end
     
@@ -379,7 +623,7 @@ module integration_top;
                 ip_debug_we <= 1;
                 ip_din <= tb_im_mem[i/4];
                 @( posedge ip_CLK );
-                //$display( " %8d ## [ DEBUG ][ IM ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
+                //$display( " %8d ## [ DEBUG ][ IM ] Addr : %8d, Data : %8b_%8b_%8b_%8b ( %10d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
                 sb_im_mem[i/4] = ip_din;
             end
         end
@@ -393,7 +637,7 @@ module integration_top;
                 ip_debug_we <= 1;
                 ip_din <= $urandom;
                 @( posedge ip_CLK );
-                $display( " %8d ## [ DEBUG ][ IM ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
+                $display( " %8d ## [ DEBUG ][ IM ] Addr : %8d, Data : %8b_%8b_%8b_%8b ( %10d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
                 sb_im_mem[i/4] = ip_din;
             end
         end
@@ -418,7 +662,7 @@ module integration_top;
                 ip_debug_we <= 1;
                 ip_din <= tb_dm_mem[i/4];
                 @( posedge ip_CLK );
-                //$display( " %8d ## [ DEBUG ][ DM ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
+                //$display( " %8d ## [ DEBUG ][ DM ] Addr : %8d, Data : %8b_%8b_%8b_%8b ( %10d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
                 sb_dm_mem[i/4] = ip_din;
             end
         end
@@ -432,7 +676,7 @@ module integration_top;
                 ip_debug_we <= 1;
                 ip_din <= $urandom;
                 @( posedge ip_CLK );
-                $display( " %8d ## [ DEBUG ][ DM ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
+                $display( " %8d ## [ DEBUG ][ DM ] Addr : %8d, Data : %8b_%8b_%8b_%8b ( %10d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
                 sb_dm_mem[i/4] = ip_din;
             end
         end
@@ -455,7 +699,7 @@ module integration_top;
             ip_debug_we <= 1;
             ip_din <= $urandom;
             @( posedge ip_CLK );
-            $display( " %8d ## [ DEBUG ][ MR ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
+            $display( " %8d ## [ DEBUG ][ MR ] Addr : %8d, Data : %8b_%8b_%8b_%8b ( %10d ) : { Backdoor Loaded Data }", $time, ip_addr, ip_din[31:24], ip_din[23:16], ip_din[15:8], ip_din[7:0], ip_din );
             sb_dm_mem[i/4] = ip_din;
         end
     
@@ -535,7 +779,7 @@ module integration_top;
         begin
             for( int i = 0; i < DM_CAPACITY; i++ )
             begin
-                $display( " %8d ## [ SIMDE ][ DM ] Addr : %16d, Data : %8b_%8b_%8b_%8b ( %16d ) : { Testbench Local Debug }", $time, i, tb_dm_mem[i][31:24], tb_dm_mem[i][23:16], tb_dm_mem[i][15:8], tb_dm_mem[i][7:0], tb_dm_mem[i] );
+                $display( " %8d ## [ SIMDE ][ DM ] Addr : %8d, Data : %8b_%8b_%8b_%8b ( %10d ) : { Testbench Local Debug }", $time, i, tb_dm_mem[i][31:24], tb_dm_mem[i][23:16], tb_dm_mem[i][15:8], tb_dm_mem[i][7:0], tb_dm_mem[i] );
             end
         end
     endtask
@@ -551,8 +795,91 @@ module integration_top;
         end
     endtask
     
-    task end_sim();
-        $display( "Simulation has been terminated abruptly..." );
+    task end_sim( bit forced_kill = 0 );
+        $display( " %8d ## [       ][    ] %s", 0, $sformatf( "Simulation has been terminated..." ) );
+        if( forced_kill )
+        begin
+            $display( " %8d ## [       ][    ]", 0 );
+            $display( " %8d ## [       ][    ]", 0 );
+            $display( " %8d ## [       ][    ] 777777777777777777777777777777777777777777777777777777777777", 0 );
+            $display( " %8d ## [       ][    ] 777777777  77777777777777777777777777777777777777777777 7777", 0 );
+            $display( " %8d ## [       ][    ] 7777777777    7777777777777777777777777777777777777    77777", 0 );
+            $display( " %8d ## [       ][    ] 77777777777     7777777777777777777777777777777      7777777", 0 );
+            $display( " %8d ## [       ][    ] 77777777 777                  777777777            777777777", 0 );
+            $display( " %8d ## [       ][    ] 777777777  77777           7777777777777       7777777777777", 0 );
+            $display( " %8d ## [       ][    ] 7777777777   77777777777777777777777777777777777777777777777", 0 );
+            $display( " %8d ## [       ][    ] 777777777777                                   7777777777777", 0 );
+            $display( " %8d ## [       ][    ] 777777777777777777777777777777777777  777  777  777777777777", 0 );
+            $display( " %8d ## [       ][    ] 777777777777777777777777777777777777  777  777  777777777777", 0 );
+            $display( " %8d ## [       ][    ] 77    7      7      77    77      77  777  777  777777777777", 0 );
+            $display( " %8d ## [       ][    ] 77  777  77  7  77  7  77  7  77  77  7777 777  777777777777", 0 );
+            $display( " %8d ## [       ][    ] 77    7    777    777  77  7    77777    7777  7777777777777", 0 );
+            $display( " %8d ## [       ][    ] 77  777  77  7  77  7  77  7  77  77777    7  77777777777777", 0 );
+            $display( " %8d ## [       ][    ] 77    7  77  7  77  77    77  77  7777777    777777777777777", 0 );
+            $display( " %8d ## [       ][    ] 777777777777777777777777777777777777777777777777777777777777", 0 );
+            $display( " %8d ## [       ][    ]", 0 );
+            $display( " %8d ## [       ][    ] Error_Run : Simulation Timeout Has Occured! FATAL", 0 );
+            $display( " %8d ## [       ][    ]", 0 );
+
+            $finish;
+        end
+        if( sb_enable )
+        begin
+            if( error_rcvd )
+            begin
+                $display( " %8d ## [       ][    ]", 0 );
+                $display( " %8d ## [       ][    ]", 0 );
+                $display( " %8d ## [       ][    ] 777777777777777777777777777777777777777777777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777  77777777777777777777777777777777777777777777 7777", 0 );
+                $display( " %8d ## [       ][    ] 7777777777    7777777777777777777777777777777777777    77777", 0 );
+                $display( " %8d ## [       ][    ] 77777777777     7777777777777777777777777777777      7777777", 0 );
+                $display( " %8d ## [       ][    ] 77777777 777                  777777777            777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777  77777           7777777777777       7777777777777", 0 );
+                $display( " %8d ## [       ][    ] 7777777777   77777777777777777777777777777777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777777                                   7777777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777777777777777777777777777777  777  777  777777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777777777777777777777777777777  777  777  777777777777", 0 );
+                $display( " %8d ## [       ][    ] 77    7      7      77    77      77  777  777  777777777777", 0 );
+                $display( " %8d ## [       ][    ] 77  777  77  7  77  7  77  7  77  77  7777 777  777777777777", 0 );
+                $display( " %8d ## [       ][    ] 77    7    777    777  77  7    77777    7777  7777777777777", 0 );
+                $display( " %8d ## [       ][    ] 77  777  77  7  77  7  77  7  77  77777    7  77777777777777", 0 );
+                $display( " %8d ## [       ][    ] 77    7  77  7  77  77    77  77  7777777    777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777777777777777777777777777777777777777777777777777777", 0 );
+                $display( " %8d ## [       ][    ]", 0 );
+                $display( " %8d ## [       ][    ] Error_Run : The loaded program does not match the expected behaviour of the SV functional model", 0 );
+                $display( " %8d ## [       ][    ]", 0 );
+            end
+            else
+            begin
+                $display( " %8d ## [       ][    ]", 0 );
+                $display( " %8d ## [       ][    ]", 0 );
+                $display( " %8d ## [       ][    ] 777777777777777777777777777777777777777777777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 7777777777777777777777777777777777        777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777777777777777777777777777        7777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 77777777777777777777777777777777        77777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 7777777777777777777777777777777        777777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777777777777777        7        7777777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 7777777777777777777777      7        77777777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 77777777777777777777777    7        777777777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777777777777777777  7        7777777777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 7777777777777777777777777         77777777777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777777777777777777777777777777777777777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777777777777    77     7     7     7777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777777777777 777 7 777 7  7777  7777777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777777777777    77     777  7777  77777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777777777777 77777 777 7     7     7777777777777777777", 0 );
+                $display( " %8d ## [       ][    ] 777777777777777777777777777777777777777777777777777777777777", 0 );
+            $display( " %8d ## [       ][    ]", 0 );
+            $display( " %8d ## [       ][    ] Clean_Run : The loaded program has executed and does match the expected behaviour of the SV functional model", 0 );
+            $display( " %8d ## [       ][    ]", 0 );
+            end
+        end
+        else
+        begin
+            $display( " %8d ## [       ][    ]", 0 );
+            $display( " %8d ## [       ][    ] Error : The loaded program does not match the expected behaviour of the SV functional model", 0 );
+            $display( " %8d ## [       ][    ]", 0 );
+        end
         $finish;
     endtask
 
