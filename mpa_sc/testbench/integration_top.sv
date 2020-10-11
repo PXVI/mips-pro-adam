@@ -46,6 +46,9 @@
         $display( " %8d ## [ TERML_DEBUG ] %s", $time, x ); \
     end
 
+`define unimpl \
+    impl_missing = 1;
+
 // --------------------------------------------
 
 module integration_top;
@@ -76,7 +79,7 @@ module integration_top;
     // -------------------------------
     
     bit tdebug_en, sb_enable;
-    bit error_rcvd;
+    bit error_rcvd, impl_missing;
 
     bit [DATA_WIDTH-1:0] tb_im_mem [IM_CAPACITY];
     bit [DATA_WIDTH-1:0] tb_dm_mem [DM_CAPACITY];
@@ -212,12 +215,14 @@ module integration_top;
                 bit [4:0] rs,rt,rd;
                 bit [15:0] imm;
                 bit [25:0] addr;
+                bit [4:0] shamt;
 
                 rs = sb_im_mem[mips_model_pc/4][25:21];
                 rt = sb_im_mem[mips_model_pc/4][20:16];
                 rd = sb_im_mem[mips_model_pc/4][15:11];
                 imm = sb_im_mem[mips_model_pc/4][15:0];
                 addr = sb_im_mem[mips_model_pc/4][25:0];
+                shamt = sb_im_mem[mips_model_pc/4][10:6];
 
                 temp_pc = mips_model_pc;
 
@@ -230,23 +235,37 @@ module integration_top;
                     case( sb_im_mem[mips_model_pc/4][5:0] ) // Function
                         // ADD ( MIPS I )
                         // ++++++++++++++
-                        6'b10_0000  :   begin
+                        6'b10_0000  :   begin // Signed Addition : TODO There's a possibility of an overflow when the posivite sums cross the (2^31)-1 boundary. It'll be treated as an negative number.
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rd] = sb_mr_mem[rs] + sb_mr_mem[rt];
+                                            `tdebug( $sformatf( "ADD Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
                         // ADDU ( MIPS I )
                         // +++++++++++++++
                         6'b10_0001  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rd] = sb_mr_mem[rs] + sb_mr_mem[rt];
+                                            `tdebug( $sformatf( "ADDU Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
                         // SUB ( MIPS I )
                         // ++++++++++++++
                         6'b10_0010  :   begin
+                                            `unimpl
                                         end
                         // SUBU ( MIPS I )
                         // +++++++++++++++
                         6'b10_0011  :   begin
+                                            `unimpl
                                         end
                         // SLT ( MIPS I )
                         // ++++++++++++++
                         6'b10_1010  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rd] = ( sb_mr_mem[rs] < sb_mr_mem[rt] ) ? 32'd1 : 32'd0;
+                                            `tdebug( $sformatf( "SLT Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
                         // SLTU ( MIPS I )
                         // +++++++++++++++
@@ -255,30 +274,55 @@ module integration_top;
                         // AND ( MIPS I )
                         // ++++++++++++++
                         6'b10_0100  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rd] = sb_mr_mem[rs] & sb_mr_mem[rt];
+                                            `tdebug( $sformatf( "AND Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
                         // OR ( MIPS I )
                         // +++++++++++++
                         6'b10_0101  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rd] = sb_mr_mem[rs] | sb_mr_mem[rt];
+                                            `tdebug( $sformatf( "OR Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
                         // XOR ( MIPS I )
                         // ++++++++++++++
                         6'b10_0110  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rd] = sb_mr_mem[rs] ^ sb_mr_mem[rt];
+                                            `tdebug( $sformatf( "XOR Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
                         // NOR ( MIPS I )
                         // ++++++++++++++
                         6'b10_0111  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rd] = ~( sb_mr_mem[rs] | sb_mr_mem[rt] );
+                                            `tdebug( $sformatf( "NOR Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
                         // JR ( MIPS I ) [ Jump Register ]
                         // +++++++++++++++++++++++++++++++
                         6'b00_1000  :   begin
+                                            `unimpl
                                         end
                         // SLL ( MIPS I ) [ Shift Left Logical ]
                         // +++++++++++++++++++++++++++++++++++++
                         6'b00_0000  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rd] = sb_mr_mem[rt] << shamt;
+                                            `tdebug( $sformatf( "SLL Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
                         // SRL ( MIPS I ) [ Shift Right Logical ]
                         // ++++++++++++++++++++++++++++++++++++++
                         6'b00_0010  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rd] = sb_mr_mem[rt] >> shamt;
+                                            `tdebug( $sformatf( "SRL Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
                         default     :   begin
                                             // Do nothing
@@ -292,54 +336,108 @@ module integration_top;
                         // ADDI ( MIPS I )
                         // +++++++++++++++
                         6'b00_1000  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rt] = sb_mr_mem[rs] + { {16{imm[15]}}, imm };
+                                            `tdebug( $sformatf( "ADDI Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr (  NA  ), Mem (  NA  ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // ADDIU ( MIPS I )
                         // ++++++++++++++++
                         6'b00_1001  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rt] = sb_mr_mem[rs] + { {16{1'b0}}, imm };
+                                            `tdebug( $sformatf( "ADDIU Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr (  NA  ), Mem (  NA  ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // ANDI ( MIPS I )
                         // +++++++++++++++
                         6'b00_1100  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rt] = sb_mr_mem[rs] & { {16{imm[1'b0]}}, imm };
+                                            `tdebug( $sformatf( "ANDI Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr (  NA  ), Mem (  NA  ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // ORI ( MIPS I )
                         // ++++++++++++++
                         6'b00_1101  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rt] = sb_mr_mem[rs] | { {16{imm[1'b0]}}, imm };
+                                            `tdebug( $sformatf( "ORI Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr (  NA  ), Mem (  NA  ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // SLTI ( MIPS I ) [ Set Less Than Immdediate ]
                         // ++++++++++++++++++++++++++++++++++++++++++++
-                        6'b00_1010  :   begin
+                        6'b00_1010  :   begin // TODO Treat both the numbers as signed
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rt] = ( sb_mr_mem[rs] < { {16{imm[15]}}, imm } ) ? 32'd1 : 32'd0;
+                                            `tdebug( $sformatf( "SLTI Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr (  NA  ), Mem (  NA  ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // SLTIU ( MIPS I ) [ Set Less Than Immediate Unsigned ]
                         // +++++++++++++++++++++++++++++++++++++++++++++++++++++
                         6'b00_1011  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rt] = ( sb_mr_mem[rs] < { {16{imm[1'b0 /* This is a neccessary modification */]}}, imm } ) ? 32'd1 : 32'd0;
+                                            `tdebug( $sformatf( "SLTI Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr (  NA  ), Mem (  NA  ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // BEQ ( MIPS I ) [ Branch On Equal ]
                         // ++++++++++++++++++++++++++++++++++
                         6'b00_0100  :   begin
+                                            `unimpl
                                         end
                         // BNE ( MIPS I ) [ Branch On Not Equal ]
                         // ++++++++++++++++++++++++++++++++++++++
                         6'b00_0101  :   begin
+                                            `unimpl
                                         end
                         // LBU ( MIPS I ) [ Load Byte Unsigned ]
                         // +++++++++++++++++++++++++++++++++++++
                         6'b10_0100  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+                                            temp_addr = ({imm+sb_mr_mem[rs]});
+                                            temp_by4_addr = temp_addr/4;
+
+                                            sb_mr_mem[rt] = {{24{1'b1}},sb_dm_mem[temp_by4_addr][7:0]};
+                                            `tdebug( $sformatf( "LBU Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr ( %0d ), Mem ( %0d ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, temp_addr, sb_dm_mem[temp_addr], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // LB [ Load Byte Sign Ext ]
                         // +++++++++++++++++++++++++
                         6'b10_0000  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+                                            temp_addr = ({imm+sb_mr_mem[rs]});
+                                            temp_by4_addr = temp_addr/4;
+
+                                            sb_mr_mem[rt] = {{24{sb_dm_mem[temp_by4_addr][7]}},sb_dm_mem[temp_by4_addr][7:0]}; // Sign Extended
+                                            `tdebug( $sformatf( "LB Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr ( %0d ), Mem ( %0d ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, temp_addr, sb_dm_mem[temp_addr], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // LHU ( MIPS I ) [ Load Half Word Unsigned ]
                         // ++++++++++++++++++++++++++++++++++++++++++
                         6'b10_0101  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+                                            temp_addr = ({imm+sb_mr_mem[rs]});
+                                            temp_by4_addr = temp_addr/4;
+
+                                            sb_mr_mem[rt] = {{16{1'b1}},sb_dm_mem[temp_by4_addr][15:0]};
+                                            `tdebug( $sformatf( "LHU Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr ( %0d ), Mem ( %0d ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, temp_addr, sb_dm_mem[temp_addr], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // LH [ Load Half Word Sign Ext ]
                         // ++++++++++++++++++++++++++++++
                         6'b10_0001  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+                                            temp_addr = ({imm+sb_mr_mem[rs]});
+                                            temp_by4_addr = temp_addr/4;
+
+                                            sb_mr_mem[rt] = {{16{sb_dm_mem[temp_by4_addr][15]}},sb_dm_mem[temp_by4_addr][15:0]}; // Sign Extended
+                                            `tdebug( $sformatf( "LH Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr ( %0d ), Mem ( %0d ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, temp_addr, sb_dm_mem[temp_addr], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // LUI ( MIPS I ) [ Load Upper Immediate ]
                         // +++++++++++++++++++++++++++++++++++++++
                         6'b00_1111  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rt] = ({imm,{16{1'b0}}});
+                                            `tdebug( $sformatf( "LUI Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr (  NA  ), Mem ( %0d ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, sb_dm_mem[temp_addr], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // LW ( MIPS I ) [ Load Word ]
                         // +++++++++++++++++++++++++++
@@ -354,14 +452,32 @@ module integration_top;
                         // SB ( MIPS I ) [ Store Byte ]
                         // ++++++++++++++++++++++++++++
                         6'b10_1000  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+                                            temp_addr = ({{{16{imm[15]}},imm}+sb_mr_mem[rs]});
+                                            temp_by4_addr = temp_addr/4;
+
+                                            sb_dm_mem[temp_by4_addr][7:0] = sb_mr_mem[rt][7:0];
+                                            `tdebug( $sformatf( "SB Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr ( %0d ), Mem ( %0d ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, temp_addr, sb_dm_mem[temp_addr], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // SH ( MIPS I ) [ Store Half Word ]
                         // +++++++++++++++++++++++++++++++++
                         6'b10_1001  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+                                            temp_addr = ({{{16{imm[15]}},imm}+sb_mr_mem[rs]});
+                                            temp_by4_addr = temp_addr/4;
+
+                                            sb_dm_mem[temp_by4_addr][15:0] = sb_mr_mem[rt][15:0];
+                                            `tdebug( $sformatf( "SH Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr ( %0d ), Mem ( %0d ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, temp_addr, sb_dm_mem[temp_addr], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // SW ( MIPS I ) [ Store Word ]
                         // ++++++++++++++++++++++++++++
                         6'b10_1011  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+                                            temp_addr = ({{{16{imm[15]}},imm}+sb_mr_mem[rs]});
+                                            temp_by4_addr = temp_addr/4;
+
+                                            sb_dm_mem[temp_by4_addr] = sb_mr_mem[rt];
+                                            `tdebug( $sformatf( "SW Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr ( %0d ), Mem ( %0d ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, temp_addr, sb_dm_mem[temp_addr], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         default     :   begin
                                             // Do Nothing
@@ -874,12 +990,11 @@ module integration_top;
             $display( " %8d ## [       ][    ]", 0 );
             end
         end
-        else
+        if( impl_missing )
         begin
-            $display( " %8d ## [       ][    ]", 0 );
-            $display( " %8d ## [       ][    ] Error : The loaded program does not match the expected behaviour of the SV functional model", 0 );
-            $display( " %8d ## [       ][    ]", 0 );
+            $display( " %8d ## [       ][    ] Warning   : An unimplemented instruction was run during the testing", 0 );
         end
+        $display( " %8d ## [       ][    ]", 0 );
         $finish;
     endtask
 
