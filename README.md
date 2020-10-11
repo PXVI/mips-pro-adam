@@ -53,6 +53,7 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
   - [ ] Stress Testing Tests
 - [ ] Miscellaneous
   - [X] Makefile
+  - [X] Regression commands and regression lists
   - [X] Debug Logs
   - [X] External Program File ( .bin )
   - [X] Test dump ( .vcd )

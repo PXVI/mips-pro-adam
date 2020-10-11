@@ -33,12 +33,13 @@
 # Switch Declarations
 # ----------------------
 
-TESTNAME?=NO_TEST
+TESTNAME?=default_run
 
 TB_FILENAME?=./../testbench/integration_top.sv
 IP_FILENAME?=./../design/res/mpa_mips.v
 
 COMPILE_FILELIST?=./compile_filelist/compile_filelist.list
+REGRESS_LIST?=./mpa_mips_programs.rlist
 
 TOP_NAME?=integration_top
 DUMP?=0
@@ -47,11 +48,14 @@ WALL?=0
 DESIGN_ONLY?=0
 TDEBUG?=0
 
+DOLLAR=$
+
 # Define Switch Decl
 # ----------------------
 
 ifdef IMFILE
 IMFILE_ARG="+IM_FILE=$(IMFILE)"
+TESTNAME=`basename $(IMFILE)`
 else
 IMFILE_ARG=
 endif
@@ -117,6 +121,8 @@ endif
 
 comp_only : clean lib comp
 
+regress : clean lib comp opt regress_sim regress_logs regress_result
+
 # Compilie Time Arguments
 # --------------------------------------------
 COMP_ARGS=$(DUMP_ARG)
@@ -128,6 +134,7 @@ clean:
 	@rm -rf *.log *.vcd *.wlf;
 	@rm -rf work questa.tops transcript;
 	@rm -rf ./debug;
+	@rm -rf ./regress_logs;
 	@rm -rf ./obj_dir;
 
 # Compilation
@@ -167,6 +174,16 @@ sim:
 	+define+UVM_NO_DPI \
 	+UVM_TESTNAME=$(TESTNAME);
 
+# Regress Simulation
+# --------------------------------------------
+regress_sim:
+	@echo "Regression Command...";
+	@i=`cat $(REGRESS_LIST) | wc -l`; for j in `seq 1 $(DOLLAR)i`; do \
+	pfname=`head -$(DOLLAR)j mpa_mips_programs.rlist | tail -1`; \
+	echo "Inside regression command. Running program file $(DOLLAR)pfname"; \
+	make sim SB=1 IMFILE=`head -$(DOLLAR)j mpa_mips_programs.rlist | tail -1`; \
+	done;
+
 # Library Generation
 # --------------------------------------------
 lib:
@@ -198,6 +215,27 @@ logs:
 	@mkdir ./debug;
 	@mv *debug.log ./debug/;
 	@echo "Moved all the logs successfully.";
+
+# Move the Geberated Debug Logs
+# --------------------------------------------
+regress_logs:
+	@echo "Organising regression logs...";
+	@mkdir regress_logs;
+	@mv *.log ./regress_logs/;
+
+# Regress Result
+# --------------------------------------------
+regress_result:
+	@echo "--------------------------------------------------------------------------";
+	@echo "Regression Results ";
+	@echo "--------------------------------------------------------------------------";
+	@tprograms=`cat $(REGRESS_LIST) | wc -l`; tpass=`cat ./regress_logs/*.log | grep "\[ RESULT \] Clean_Run" | wc -l`; tfail=`cat ./regress_logs/*.log | grep "\[ RESULT \] Error_Run" | wc -l`; twarn=`cat ./regress_logs/*.log | grep "\[ RESULT \] Warning" | wc -l`; \
+	echo "Total Programs : $(DOLLAR)tprograms"; \
+	echo "--------------------------------------------------------------------------"; \
+	echo "Passing        : $(DOLLAR)tpass"; \
+	echo "Failing        : $(DOLLAR)tfail"; \
+	echo "Warning        : $(DOLLAR)twarn"; \
+	echo "--------------------------------------------------------------------------";
 
 # For the Qverilog Command
 # --------------------------------------------

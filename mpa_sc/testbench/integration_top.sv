@@ -934,7 +934,7 @@ module integration_top;
             $display( " %8d ## [       ][    ] 77    7  77  7  77  77    77  77  7777777    777777777777777", 0 );
             $display( " %8d ## [       ][    ] 777777777777777777777777777777777777777777777777777777777777", 0 );
             $display( " %8d ## [       ][    ]", 0 );
-            $display( " %8d ## [       ][    ] Error_Run : Simulation Timeout Has Occured! FATAL", 0 );
+            $display( " %8d ## [       ][    ][ RESULT ] Error_Run : Simulation Timeout Has Occured! FATAL", 0 );
             $display( " %8d ## [       ][    ]", 0 );
 
             $finish;
@@ -962,7 +962,7 @@ module integration_top;
                 $display( " %8d ## [       ][    ] 77    7  77  7  77  77    77  77  7777777    777777777777777", 0 );
                 $display( " %8d ## [       ][    ] 777777777777777777777777777777777777777777777777777777777777", 0 );
                 $display( " %8d ## [       ][    ]", 0 );
-                $display( " %8d ## [       ][    ] Error_Run : The loaded program does not match the expected behaviour of the SV functional model", 0 );
+                $display( " %8d ## [       ][    ][ RESULT ] Error_Run : The loaded program does not match the expected behaviour of the SV functional model", 0 );
                 $display( " %8d ## [       ][    ]", 0 );
             end
             else
@@ -986,13 +986,13 @@ module integration_top;
                 $display( " %8d ## [       ][    ] 777777777777777777 77777 777 7     7     7777777777777777777", 0 );
                 $display( " %8d ## [       ][    ] 777777777777777777777777777777777777777777777777777777777777", 0 );
             $display( " %8d ## [       ][    ]", 0 );
-            $display( " %8d ## [       ][    ] Clean_Run : The loaded program has executed and does match the expected behaviour of the SV functional model", 0 );
+            $display( " %8d ## [       ][    ][ RESULT ] Clean_Run : The loaded program has executed and does match the expected behaviour of the SV functional model", 0 );
             $display( " %8d ## [       ][    ]", 0 );
             end
         end
         if( impl_missing )
         begin
-            $display( " %8d ## [       ][    ] Warning   : An unimplemented instruction was run during the testing", 0 );
+            $display( " %8d ## [       ][    ][ RESULT ] Warning   : An unimplemented instruction was run during the testing", 0 );
         end
         $display( " %8d ## [       ][    ]", 0 );
         $finish;

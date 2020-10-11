@@ -1,0 +1,5 @@
+./test_programs/test_load_im_program_I_LB.bin
+./test_programs/test_load_im_program_I_LBU.bin
+./test_programs/test_load_im_program_I_LH.bin
+./test_programs/test_load_im_program_I_LHU.bin
+./test_programs/test_load_im_program_I_LW.bin
