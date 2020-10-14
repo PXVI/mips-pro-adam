@@ -96,6 +96,9 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     reg data_mem_re_local;
     reg [ADDRESS_WIDTH-1:0] dm_addr_in_local;
     reg [DATA_WIDTH-1:0] dm_data_in_local;
+    reg [1:0] dm_data_wr_byte_strobe_local;
+    reg data_mem_or_alu_dout_sel_local;
+    wire [1:0] dm_data_wr_byte_strobe_gate;
     wire data_mem_we_wire;
     wire data_mem_re_wire;
     wire [3:0] instr_imm_value_en_gate;
@@ -105,7 +108,9 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     reg [1:0] instr_r_i_j_type_local;
     wire [DATA_WIDTH-1:0] alu_data_out;
     wire [DATA_WIDTH-1:0] instr_mem_dout; // Supports DEBUG Access
-    wire [DATA_WIDTH-1:0] data_mem_dout; // Supports DEBUG Access
+    wire [DATA_WIDTH-1:0] data_mem_or_alu_dout_gate; // Supports DEBUG Access
+    wire [DATA_WIDTH-1:0] data_mem_dout;
+    wire data_mem_or_alu_dout_sel_gate; // Selects weather ALU output is considered or the DM output is considered
     wire [1:0] instr_r_i_j_type_gate; // Tell if the instruction is R type or I type or J type : R(0), I(1), J(2)
 
     reg [ADDRESS_WIDTH-1:0] pc_p; // Special Purpose Register #1
@@ -150,8 +155,8 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     assign data_mem_we_gate = ( mem_debug ) ? ( debug_func == 2'd2 ) ? debug_we : 1'b0 : data_mem_we_local; // Debug Supported 
     assign data_mem_re_gate = ( mem_debug ) ? ( debug_func == 2'd2 ) ? debug_re : 1'b0 : data_mem_re_local; // Debug Supported
 
-    assign instr2mr_a0_addr_gate = pc2instr_mem_addr[25:21]; // A0
-    assign instr2mr_a0_addr_gate = pc2instr_mem_addr[20:16]; // A1
+    //assign instr2mr_a0_addr_gate = pc2instr_mem_addr[25:21]; // A0
+    //assign instr2mr_a1_addr_gate = pc2instr_mem_addr[20:16]; // A1
 
     always@( * ) // MIPS Register DIN Data Rearranger & Multiplexer // TODO This can be optimized
     begin
@@ -168,7 +173,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                             instr_imm2mr_reg = { 16'b0, data_mem_dout[15:0] };
                         end
             4       :   begin // Load word
-                            instr_imm2mr_reg = { data_mem_dout };
+                            instr_imm2mr_reg = ( data_mem_or_alu_dout_sel_gate ) ? dm_data_in_gate : { data_mem_dout };
                         end
             5       :   begin // Load byte sign ext
                             instr_imm2mr_reg = { {24{data_mem_dout[7]}}, data_mem_dout[7:0] };
@@ -185,6 +190,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     end
     assign instr_imm2mr_gate = ( mem_debug ) ? din : instr_imm2mr_reg; // Debug Supported
     assign instr_imm_value_en_gate = instr_imm_value_en_local;
+    assign data_mem_or_alu_dout_sel_gate = data_mem_or_alu_dout_sel_local;
 
     always@( * ) // MIPS ALU Second Input Multiplexer
     begin
@@ -194,6 +200,10 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
             1           :   begin
                                 alu_a1_in_reg[15:0] = { instr_mem_dout[15:0] }; // Sign Extended
                                 alu_a1_in_reg[31:16] = {16{ instr_mem_dout[15] }};
+                            end
+            2           :   begin
+                                alu_a1_in_reg[15:0] = { instr_mem_dout[15:0] }; // Zero Extended
+                                alu_a1_in_reg[31:16] = {16{ 1'b0 }};
                             end
             default     :   begin
                                 alu_a1_in_reg = instr_mem_dout; // Default
@@ -247,6 +257,8 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
         mr_a1_out_instr_imm_en_local = 0;
         data_mem_we_local = 0;
         data_mem_re_local = 0;
+        dm_data_wr_byte_strobe_local = 0; // W Strobe - Default ( 1 : Lower Byte, 2 : Lower Half Word, 3 : Word )
+        data_mem_or_alu_dout_sel_local = 0;
         instr_r_i_j_type_local = 0; // Default is R type
 
         case( instr_mem_dout[31:26] )
@@ -312,21 +324,53 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                                     end
                                 endcase
                             end
-            // ADDI ( MIPS I )
+            // ADDI ( MIPS I ) // Max Postive Sume is (2^31)-1
+            // TODO Must generate an overflow for sum if addition 
+            // goes above the positive max or below the min negative 
+            // val
             // +++++++++++++++
             6'b00_1000  :   begin
                             end
-            // ADDIU ( MIPS I )
+            // ADDIU ( MIPS I ) // Max Positive Sum is (2^32)-1
+            // TODO Must implement the overflow for max sum
             // ++++++++++++++++
             6'b00_1001  :   begin
+                                mips_reg_we_local = 1;
+                                mpa_alu_func_sel_reg = `alu_add;
+                                mr_a1_out_instr_imm_en_local = 1;
+                                instr_imm_value_en_local = 4;
+                                data_mem_or_alu_dout_sel_local = 1;
+                                instr_r_i_j_type_local = 1;
                             end
             // ANDI ( MIPS I )
             // +++++++++++++++
             6'b00_1100  :   begin
+                                mips_reg_we_local = 1;
+                                mpa_alu_func_sel_reg = `alu_and;
+                                mr_a1_out_instr_imm_en_local = 2;
+                                instr_imm_value_en_local = 4;
+                                data_mem_or_alu_dout_sel_local = 1;
+                                instr_r_i_j_type_local = 1;
                             end
             // ORI ( MIPS I )
             // ++++++++++++++
             6'b00_1101  :   begin
+                                mips_reg_we_local = 1;
+                                mpa_alu_func_sel_reg = `alu_or;
+                                mr_a1_out_instr_imm_en_local = 2;
+                                instr_imm_value_en_local = 4;
+                                data_mem_or_alu_dout_sel_local = 1;
+                                instr_r_i_j_type_local = 1;
+                            end
+            // XORI
+            // ++++
+            6'b00_1110  :   begin
+                                mips_reg_we_local = 1;
+                                mpa_alu_func_sel_reg = `alu_xor;
+                                mr_a1_out_instr_imm_en_local = 2;
+                                instr_imm_value_en_local = 4;
+                                data_mem_or_alu_dout_sel_local = 1;
+                                instr_r_i_j_type_local = 1;
                             end
             // SLTI ( MIPS I ) [ Set Less Than Immdediate ]
             // ++++++++++++++++++++++++++++++++++++++++++++
@@ -404,6 +448,12 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
             // SB ( MIPS I ) [ Store Byte ]
             // ++++++++++++++++++++++++++++
             6'b10_1000  :   begin
+                                mpa_alu_func_sel_reg = `alu_add;
+                                data_mem_we_local = 1;
+                                data_mem_re_local = 1;
+                                dm_data_wr_byte_strobe_local = 1;
+                                mr_a1_out_instr_imm_en_local = 1;
+                                instr_r_i_j_type_local = 1;
                             end
             //// SC ( MIPS II ) [ Store Conditional ] // TODO : In Rev 2.0
             //6'b000000   :   begin
@@ -412,10 +462,22 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
             // SH ( MIPS I ) [ Store Half Word ]
             // +++++++++++++++++++++++++++++++++
             6'b10_1001  :   begin
+                                mpa_alu_func_sel_reg = `alu_add;
+                                data_mem_we_local = 1;
+                                data_mem_re_local = 1;
+                                dm_data_wr_byte_strobe_local = 2;
+                                mr_a1_out_instr_imm_en_local = 1;
+                                instr_r_i_j_type_local = 1;
                             end
             // SW ( MIPS I ) [ Store Word ]
             // ++++++++++++++++++++++++++++
             6'b10_1011  :   begin
+                                mpa_alu_func_sel_reg = `alu_add;
+                                data_mem_we_local = 1;
+                                data_mem_re_local = 1;
+                                dm_data_wr_byte_strobe_local = 3;
+                                mr_a1_out_instr_imm_en_local = 1;
+                                instr_r_i_j_type_local = 1;
                             end
             // Unsupported Opcode   
             // ++++++++++++++++++
@@ -447,7 +509,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
 
     always@( * ) // Program Counter Next Address Selection
     begin
-        pc_n = { pc_p + 3'd4 }; // Default Rule
+        pc_n = { pc_p + { {28{1'b0}}, 3'd4 } }; // Default Rule
     end
 
     // MIPS Reg Input Address Mux
@@ -456,7 +518,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     begin
         if( mem_debug )
         begin
-            instr2mr_a1_addr_local = addr;
+            instr2mr_a1_addr_local = addr[4:0];
         end
         else
         begin
@@ -468,7 +530,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
 
     assign instr2mr_a0_addr_gate = instr2mr_a0_addr_local;
     assign instr2mr_a1_addr_gate = instr2mr_a1_addr_local;
-    assign instr2mr_a2_addr_gate = ( mem_debug ) ? addr : instr2mr_a2_addr_local;
+    assign instr2mr_a2_addr_gate = ( mem_debug ) ? addr[4:0] : instr2mr_a2_addr_local;
     assign instr_r_i_j_type_gate = instr_r_i_j_type_local;
 
     // Instruction Memory Instance
@@ -518,11 +580,26 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     always@( * )
     begin
         dm_addr_in_local = alu_data_out;
-        dm_data_in_local = alu_data_out;
+
+        case( dm_data_wr_byte_strobe_gate )
+            1       :   begin // Byte Strobe
+                            dm_data_in_local = { data_mem_dout[31:8],mr_a1_out_gate[7:0] };
+                        end
+            2       :   begin // Half Word Strobe
+                            dm_data_in_local = { data_mem_dout[31:16],mr_a1_out_gate[15:0] };
+                        end
+            3       :   begin // Word Strobe
+                            dm_data_in_local = { mr_a1_out_gate };
+                        end
+            default :   begin // Data In Takes Input Directly From ALU - Default
+                            dm_data_in_local = alu_data_out;
+                        end
+        endcase
     end
 
     assign dm_addr_in_gate = ( mem_debug ) ? addr : dm_addr_in_local; // Debug Supported
     assign dm_data_in_gate = ( mem_debug ) ? din : dm_data_in_local; // Debug Supported
+    assign dm_data_wr_byte_strobe_gate = dm_data_wr_byte_strobe_local;
     
     // Data Memory Instance
     // ++++++++++++++++++++

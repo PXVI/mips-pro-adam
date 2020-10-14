@@ -59,16 +59,14 @@ module mpa_data_mem #(  parameter   DATA_CAPACITY = 128,
 
     reg [GRANULARITY-1:0] mem_p [(DATA_CAPACITY*(DATA_WIDTH/GRANULARITY))-1:0]; // 128*4 Locations ( Each is byte addressable )
     reg [GRANULARITY-1:0] mem_n [(DATA_CAPACITY*(DATA_WIDTH/GRANULARITY))-1:0]; // Same as above
+    reg [GRANULARITY-1:0] mem_reset_val [(DATA_CAPACITY*(DATA_WIDTH/GRANULARITY))-1:0]; // Same as above
 
     integer i = 0, j = 0;
     genvar k;
 
     always@( posedge CLK or negedge HW_RSTn )
     begin
-        for( i = 0; i < (DATA_CAPACITY*(DATA_WIDTH/GRANULARITY)); i = i + 1 )
-        begin
-            mem_p[i] <= mem_n[i];
-        end
+        mem_p <= mem_p;
 
         if( !HW_RSTn )
         begin
@@ -85,6 +83,7 @@ module mpa_data_mem #(  parameter   DATA_CAPACITY = 128,
         for( i = 0; i < (DATA_CAPACITY*(DATA_WIDTH/GRANULARITY)); i = i + 1 )
         begin
             mem_n[i] = mem_p[i]; // By default
+            mem_reset_val[i] = 0;
         end
 
         if( WE )

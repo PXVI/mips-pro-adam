@@ -233,7 +233,7 @@ module integration_top;
                 if( sb_im_mem[mips_model_pc/4][31:26] == 6'b00_0000 ) // Special
                 begin
                     case( sb_im_mem[mips_model_pc/4][5:0] ) // Function
-                        // ADD ( MIPS I )
+                        // ADD ( MIPS I ) // add 0 0 0 will be used as a NOP
                         // ++++++++++++++
                         6'b10_0000  :   begin // Signed Addition : TODO There's a possibility of an overflow when the posivite sums cross the (2^31)-1 boundary. It'll be treated as an negative number.
                                             bit [31:0] temp_addr, temp_by4_addr;
@@ -311,10 +311,10 @@ module integration_top;
                         // SLL ( MIPS I ) [ Shift Left Logical ]
                         // +++++++++++++++++++++++++++++++++++++
                         6'b00_0000  :   begin
-                                            bit [31:0] temp_addr, temp_by4_addr;
+                                            //bit [31:0] temp_addr, temp_by4_addr;
 
-                                            sb_mr_mem[rd] = sb_mr_mem[rt] << shamt;
-                                            `tdebug( $sformatf( "SLL Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
+                                            //sb_mr_mem[rd] = sb_mr_mem[rt] << shamt;
+                                            //`tdebug( $sformatf( "SLL Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
                         // SRL ( MIPS I ) [ Shift Right Logical ]
                         // ++++++++++++++++++++++++++++++++++++++
@@ -365,6 +365,14 @@ module integration_top;
                                             sb_mr_mem[rt] = sb_mr_mem[rs] | { {16{imm[1'b0]}}, imm };
                                             `tdebug( $sformatf( "ORI Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr (  NA  ), Mem (  NA  ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
+                        // XORI ( MIPS ? )
+                        // +++++++++++++++
+                        6'b00_1110  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rt] = sb_mr_mem[rs] ^ { {16{imm[1'b0]}}, imm };
+                                            `tdebug( $sformatf( "XORI Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr (  NA  ), Mem (  NA  ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
+                                        end
                         // SLTI ( MIPS I ) [ Set Less Than Immdediate ]
                         // ++++++++++++++++++++++++++++++++++++++++++++
                         6'b00_1010  :   begin // TODO Treat both the numbers as signed
@@ -398,7 +406,7 @@ module integration_top;
                                             temp_addr = ({imm+sb_mr_mem[rs]});
                                             temp_by4_addr = temp_addr/4;
 
-                                            sb_mr_mem[rt] = {{24{1'b1}},sb_dm_mem[temp_by4_addr][7:0]};
+                                            sb_mr_mem[rt] = {{24{1'b0}},sb_dm_mem[temp_by4_addr][7:0]};
                                             `tdebug( $sformatf( "LBU Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr ( %0d ), Mem ( %0d ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, temp_addr, sb_dm_mem[temp_addr], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // LB [ Load Byte Sign Ext ]
@@ -418,7 +426,7 @@ module integration_top;
                                             temp_addr = ({imm+sb_mr_mem[rs]});
                                             temp_by4_addr = temp_addr/4;
 
-                                            sb_mr_mem[rt] = {{16{1'b1}},sb_dm_mem[temp_by4_addr][15:0]};
+                                            sb_mr_mem[rt] = {{16{1'b0}},sb_dm_mem[temp_by4_addr][15:0]};
                                             `tdebug( $sformatf( "LHU Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr ( %0d ), Mem ( %0d ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, temp_addr, sb_dm_mem[temp_addr], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // LH [ Load Half Word Sign Ext ]
@@ -485,6 +493,10 @@ module integration_top;
                                         end
                     endcase
                 end
+
+                // Fixed Register Values
+                // ---------------------
+                sb_mr_mem[0] = 32'd0;
 
                 // PC Updation
                 // -----------
@@ -895,7 +907,7 @@ module integration_top;
         begin
             for( int i = 0; i < DM_CAPACITY; i++ )
             begin
-                $display( " %8d ## [ SIMDE ][ DM ] Addr : %8d, Data : %8b_%8b_%8b_%8b ( %10d ) : { Testbench Local Debug }", $time, i, tb_dm_mem[i][31:24], tb_dm_mem[i][23:16], tb_dm_mem[i][15:8], tb_dm_mem[i][7:0], tb_dm_mem[i] );
+                $display( " %8d ## [ SIMDE ][ DM ] Addr : %8d, Data : %8b_%8b_%8b_%8b ( %10d ) : { Testbench Local Debug }", $time, i*4, tb_dm_mem[i][31:24], tb_dm_mem[i][23:16], tb_dm_mem[i][15:8], tb_dm_mem[i][7:0], tb_dm_mem[i] );
             end
         end
     endtask

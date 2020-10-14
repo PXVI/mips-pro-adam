@@ -32,9 +32,14 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
       - [X] LHU
       - [X] LB
       - [X] LBU
-      - [ ] SB
-      - [ ] SH
-      - [ ] SW
+      - [X] SB
+      - [X] SH
+      - [X] SW
+      - [ ] ADDI
+      - [X] ADDIU
+      - [X] ANDI
+      - [X] ORI
+      - [X] XORI
     - [ ] Jump Type
 - [ ] Testbench
   - [ ] Systemverilog based functional model of MIPS32
@@ -46,9 +51,10 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
 - [ ] Test Suite ( Custom )
   - [ ] Basic Instructions Data Path Only Tests
     - [X] Load Instructions
-    - [ ] Store Instructions
+    - [X] Store Instructions
     - [ ] Register Arithematic Instructions
     - [ ] Immideate Arithematic Instructions
+    - [ ] Branch Instructions
   - [ ] Appication Based Tests
   - [ ] Stress Testing Tests
 - [ ] Miscellaneous

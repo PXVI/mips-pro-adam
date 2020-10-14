@@ -52,6 +52,7 @@ module mpa_instr_mem #( parameter   INSTR_CAPACITY = 64,
 
     reg [ADDRESS_ACCESS-1:0] instr_mem_p [INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS)]; // 64*4 memory locations, ie still 64 full instructions
     reg [ADDRESS_ACCESS-1:0] instr_mem_n [INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS)]; // Same as above
+    reg [ADDRESS_ACCESS-1:0] instr_mem_reset_val [INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS)]; // Same as above
 
     reg [INSTR_WIDTH-1:0] temp_out;
 
@@ -61,24 +62,15 @@ module mpa_instr_mem #( parameter   INSTR_CAPACITY = 64,
 
     always@(  posedge CLK or negedge HW_RSTn)
     begin
-        for( i = 0; i < INSTR_CAPACITY*(INSTR_WIDTH/ADDRESS_ACCESS); i = i + 1 )
-        begin
-            instr_mem_p[i] <= instr_mem_p[i];
-        end
+        instr_mem_p <= instr_mem_p; // Default
 
         if( !HW_RSTn )
         begin
-            for( i = 0; i < INSTR_CAPACITY*( (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS) ); i = i + 1 )
-            begin
-                instr_mem_p[i] <= 0; // TODO : Decide later what the default values will be/should be
-            end
+            instr_mem_p <= instr_mem_reset_val; // TODO : Decide later what the default values will be/should be
         end
         else
         begin
-            for( i = 0; i < INSTR_CAPACITY*( (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS) ); i = i + 1 )
-            begin
-                instr_mem_p[i] <= instr_mem_n[i];
-            end
+            instr_mem_p <= instr_mem_n;
         end
     end
 
@@ -87,6 +79,7 @@ module mpa_instr_mem #( parameter   INSTR_CAPACITY = 64,
         for( i = 0; i < INSTR_CAPACITY*( (INSTR_WIDTH/ADDRESS_ACCESS) + (INSTR_WIDTH%ADDRESS_ACCESS) ); i = i + 1 )
         begin
             instr_mem_n[i] = instr_mem_p[i]; // By Default
+            instr_mem_reset_val[i] = 0;
         end
 
         if( WE )
