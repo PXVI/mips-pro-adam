@@ -21,11 +21,13 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
   - [X] ALU
   - [ ] ISA ( Instruction Sets )
     - [ ] Register Type
+      - [X] ADDU
       - [ ] ADD
+      - [ ] SUBU
       - [ ] SUB
-      - [ ] XOR
-      - [ ] OR
-      - [ ] NOR
+      - [X] XOR
+      - [X] OR
+      - [X] NOR
     - [ ] Immideate Type
       - [X] LW
       - [X] LH
