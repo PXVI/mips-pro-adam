@@ -43,6 +43,8 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
       - [X] ORI
       - [X] XORI
     - [ ] Jump Type
+    - [ ] Exceptions
+      - [ ] Arithematic Exception Flag
 - [ ] Testbench
   - [ ] Systemverilog based functional model of MIPS32
   - [X] Debug tasks to write and read data into the IP
