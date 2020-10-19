@@ -44,11 +44,15 @@ module mpa_alu  #(  parameter   DATA_WIDTH = 32,
                                 input [DATA_WIDTH-1:0] data0,
                                 input [DATA_WIDTH-1:0] data1,
 
-                                output [DATA_WIDTH-1:0] data_out
+                                output [DATA_WIDTH-1:0] data_out,
+                                output carry_gen,
+                                output borrow_gen
                 );
 
     genvar i;
     reg [DATA_WIDTH-1:0] temp_out;
+    reg carry_out_local;
+    reg borrow_out_local;
 
     // Case Selection
     // ++++++++++++++
@@ -57,8 +61,8 @@ module mpa_alu  #(  parameter   DATA_WIDTH = 32,
     // 2   - bitwise OR
     // 3   - bitwise AND
     // 4   - bitwise NOT
-    // 5   - Unsigned ADD
-    // 6   - Unsigned SUB
+    // 5   - Unsigned/Signed ADD
+    // 6   - Unsigned/Signed SUB
     // 7   - bitwise NOR
     // 8   - reserved ( 0 out )
     // ++++++++++++++++++++++++
@@ -70,13 +74,15 @@ module mpa_alu  #(  parameter   DATA_WIDTH = 32,
             2           :   temp_out = data0 | data1;
             3           :   temp_out = data0 & data1;
             4           :   temp_out = ~data0;
-            5           :   temp_out = {data0 + data1}; // TODO Add an carry/overflow bit somewhere
-            6           :   temp_out = {~data0 + data1 + 1'b1}; // TODO Add a borrow/underflow bit somewhere
+            5           :   {carry_out_local,temp_out} = data0 + data1;
+            6           :   {borrow_out_local,temp_out} = ~{ data0[DATA_WIDTH-1], data0 } + { data1[DATA_WIDTH-1], data1 } + 1'b1; // TODO Add a borrow/underflow bit somewhere | This needs to be cross checked
             7           :   temp_out = ~{data0 | data1};
             default     :   temp_out = 0;
         endcase
     end
 
     assign data_out = temp_out;
+    assign carry_gen = carry_out_local;
+    assign borrow_gen = borrow_out_local;
 
 endmodule

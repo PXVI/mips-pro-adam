@@ -216,6 +216,7 @@ module integration_top;
                 bit [15:0] imm;
                 bit [25:0] addr;
                 bit [4:0] shamt;
+                bit arith_ex;
 
                 rs = sb_im_mem[mips_model_pc/4][25:21];
                 rt = sb_im_mem[mips_model_pc/4][20:16];
@@ -241,8 +242,15 @@ module integration_top;
                         6'b10_0000  :   begin // Signed Addition : TODO There's a possibility of an overflow when the posivite sums cross the (2^31)-1 boundary. It'll be treated as an negative number.
                                             bit [31:0] temp_addr, temp_by4_addr;
 
-                                            sb_mr_mem[rd] = sb_mr_mem[rs] + sb_mr_mem[rt];
-                                            `tdebug( $sformatf( "ADD Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
+                                            { arith_ex, sb_mr_mem[rd] } = sb_mr_mem[rs] + sb_mr_mem[rt];
+                                            if( arith_ex != sb_mr_mem[rd] ) // Will happen if carry is 1 but the MSB of sum is 0 ( This is becasue the carry and MSB must be the same to comply with the signed addition concept )
+                                            begin
+                                                `tdebug( $sformatf( "ADD Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b ) { Add Overflow Exception }", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
+                                            end
+                                            else
+                                            begin
+                                                `tdebug( $sformatf( "ADD Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
+                                            end
                                         end
                         // ADDU ( MIPS I ) // addu 0 0 0 will be used as a UNOP ( same as NOP )
                         // +++++++++++++++
@@ -255,12 +263,25 @@ module integration_top;
                         // SUB ( MIPS I )
                         // ++++++++++++++
                         6'b10_0010  :   begin
-                                            `unimpl
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            { arith_ex, sb_mr_mem[rd] } = sb_mr_mem[rs] - sb_mr_mem[rt];
+                                            if( arith_ex != sb_mr_mem[rd] ) // Will happen if carry is 1 but the MSB of sum is 0 ( This is becasue the carry and MSB must be the same to comply with the signed addition concept )
+                                            begin
+                                                `tdebug( $sformatf( "ADD Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b ) { Add Overflow Exception }", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
+                                            end
+                                            else
+                                            begin
+                                                `tdebug( $sformatf( "ADD Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
+                                            end
                                         end
                         // SUBU ( MIPS I )
                         // +++++++++++++++
                         6'b10_0011  :   begin
-                                            `unimpl
+                                            bit [31:0] temp_addr, temp_by4_addr;
+
+                                            sb_mr_mem[rd] = sb_mr_mem[rs] - sb_mr_mem[rt];
+                                            `tdebug( $sformatf( "SUB Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
                         // SLT ( MIPS I )
                         // ++++++++++++++

@@ -86,6 +86,12 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     wire [ADDRESS_WIDTH-1:0] dm_addr_in_gate;
     wire [DATA_WIDTH-1:0] dm_data_in_gate;
 
+    // TODO - Exceptions Registers / Handling
+    // ++++++++++++++++++++++++++++++++++++++
+    reg mips_arith_ex_local;
+    wire mips_arith_ex_gate;
+
+    reg [1:0] mips_arith_ex_check_en_local;
     reg instr_mem_we_local;
     reg mips_reg_we_local;
     reg [3:0] instr_imm_value_en_local;
@@ -99,6 +105,9 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     reg [DATA_WIDTH-1:0] dm_data_in_local;
     reg [1:0] dm_data_wr_byte_strobe_local;
     reg data_mem_or_alu_dout_sel_local;
+    wire alu_carry_gen;
+    wire alu_borrow_gen;
+    wire [1:0] mips_arith_ex_check_en_gate;
     wire [1:0] dm_data_wr_byte_strobe_gate;
     wire data_mem_we_wire;
     wire data_mem_re_wire;
@@ -254,10 +263,10 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     // 4. [X] LW
     //
     // Stores :
-    // 1. [ ] SB
-    // 2. [ ] SH
-    // 3. [ ] SW
-    // 4. [ ] SC
+    // 1. [X] SB
+    // 2. [X] SH
+    // 3. [X] SW
+    // 4. [X] SC
     // 
 
     // Control Logic Decoder
@@ -274,6 +283,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
         data_mem_re_local = 0;
         dm_data_wr_byte_strobe_local = 0; // W Strobe - Default ( 1 : Lower Byte, 2 : Lower Half Word, 3 : Word )
         data_mem_or_alu_dout_sel_local = 0;
+        mips_arith_ex_check_en_local = 0;
         instr_r_i_j_type_local = 0; // Default is R type
 
         case( instr_mem_dout[31:26] )
@@ -288,6 +298,10 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                     // it.
                                     // ++++++++++++++
                                     6'b10_0000  :   begin
+                                                        mips_reg_we_local = 1;
+                                                        mpa_alu_func_sel_reg = `alu_add;
+                                                        mips_arith_ex_check_en_local = 1;
+                                                        instr_r_i_j_type_local = 0;
                                                     end
                                     // ADDU ( MIPS I )
                                     // +++++++++++++++
@@ -299,10 +313,17 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                     // SUB ( MIPS I )
                                     // ++++++++++++++
                                     6'b10_0010  :   begin
+                                                        mips_reg_we_local = 1;
+                                                        mpa_alu_func_sel_reg = `alu_sub;
+                                                        mips_arith_ex_check_en_local = 1;
+                                                        instr_r_i_j_type_local = 0;
                                                     end
                                     // SUBU ( MIPS I )
                                     // +++++++++++++++
                                     6'b10_0011  :   begin
+                                                        mips_reg_we_local = 1;
+                                                        mpa_alu_func_sel_reg = `alu_sub;
+                                                        instr_r_i_j_type_local = 0;
                                                     end
                                     // SLT ( MIPS I )
                                     // ++++++++++++++
@@ -583,7 +604,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                         .data_out( instr_mem_dout ) // Instr Mem Debug Data Out
                     );
 
-    // MIPS MPA Register Memory INstance
+    // MIPS MPA Register Memory Instance
     // +++++++++++++++++++++++++++++++++
     mpa_mips_reg    mips_mpa_inst   (
                                         .HW_RSTn( HW_RSTn ),
@@ -606,8 +627,35 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                 .func_sel( mpa_alu_func_sel_gate ),
                 .data0( mr_a0_out ),
                 .data1( alu_a1_in_gate ),
-                .data_out( alu_data_out )
+                .data_out( alu_data_out ),
+                .carry_gen( alu_carry_gen ),
+                .borrow_gen( alu_borrow_gen )
             );
+
+    // Arithematic Exceptions Generation Logic
+    // +++++++++++++++++++++++++++++++++++++++
+    always@( * )
+    begin
+        mips_arith_ex_local = 0;
+
+        if( mips_arith_ex_check_en_local == 2'd1 ) // Addition Overflow Exception
+        begin
+            if( alu_data_out[DATA_WIDTH-1] != alu_carry_gen )
+            begin
+                mips_arith_ex_local = 1;
+            end
+        end
+        else if( mips_arith_ex_check_en_local == 2'd2 ) // Subtraction Underflow/Overflow Exception
+        begin
+            if( alu_data_out[DATA_WIDTH-1] != alu_borrow_gen )
+            begin
+                mips_arith_ex_local = 1;
+            end
+        end
+    end
+
+    assign mips_arith_ex_check_en_gate = mips_arith_ex_check_en_local;
+    assign mips_arith_ex_gate = mips_arith_ex_local;
 
     // Data Memory Input Mux
     // +++++++++++++++++++++
