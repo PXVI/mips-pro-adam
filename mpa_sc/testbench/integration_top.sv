@@ -234,6 +234,9 @@ module integration_top;
                 begin
                     case( sb_im_mem[mips_model_pc/4][5:0] ) // Function
                         // ADD ( MIPS I ) // add 0 0 0 will be used as a NOP
+                        // TODO : For now this will be implemented just like
+                        // the ADDU. More work needs to be done in this
+                        // section.
                         // ++++++++++++++
                         6'b10_0000  :   begin // Signed Addition : TODO There's a possibility of an overflow when the posivite sums cross the (2^31)-1 boundary. It'll be treated as an negative number.
                                             bit [31:0] temp_addr, temp_by4_addr;
@@ -241,7 +244,7 @@ module integration_top;
                                             sb_mr_mem[rd] = sb_mr_mem[rs] + sb_mr_mem[rt];
                                             `tdebug( $sformatf( "ADD Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
-                        // ADDU ( MIPS I )
+                        // ADDU ( MIPS I ) // addu 0 0 0 will be used as a UNOP ( same as NOP )
                         // +++++++++++++++
                         6'b10_0001  :   begin
                                             bit [31:0] temp_addr, temp_by4_addr;

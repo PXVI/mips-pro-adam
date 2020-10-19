@@ -37,7 +37,7 @@
 //
 
 module mpa_alu  #(  parameter   DATA_WIDTH = 32,
-                                FUNCTION_SEL_WIDTH = 3
+                                FUNCTION_SEL_WIDTH = 4
                 )
                 (
                                 input [FUNCTION_SEL_WIDTH-1:0] func_sel,
@@ -59,7 +59,8 @@ module mpa_alu  #(  parameter   DATA_WIDTH = 32,
     // 4   - bitwise NOT
     // 5   - Unsigned ADD
     // 6   - Unsigned SUB
-    // 7   - reserved ( 0 out )
+    // 7   - bitwise NOR
+    // 8   - reserved ( 0 out )
     // ++++++++++++++++++++++++
 
     always@( * )
@@ -71,6 +72,7 @@ module mpa_alu  #(  parameter   DATA_WIDTH = 32,
             4           :   temp_out = ~data0;
             5           :   temp_out = {data0 + data1}; // TODO Add an carry/overflow bit somewhere
             6           :   temp_out = {~data0 + data1 + 1'b1}; // TODO Add a borrow/underflow bit somewhere
+            7           :   temp_out = ~{data0 | data1};
             default     :   temp_out = 0;
         endcase
     end

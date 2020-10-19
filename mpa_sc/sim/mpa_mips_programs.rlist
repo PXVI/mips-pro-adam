@@ -12,3 +12,8 @@
 ./test_programs/test_load_im_program_I_LW_SW.bin
 ./test_programs/test_load_im_program_I_ORI.bin
 ./test_programs/test_load_im_program_I_XORI.bin
+./test_programs/test_load_im_program_I_LW_R_ADDU.bin
+./test_programs/test_load_im_program_I_LW_R_AND.bin
+./test_programs/test_load_im_program_I_LW_R_NOR.bin
+./test_programs/test_load_im_program_I_LW_R_OR.bin
+./test_programs/test_load_im_program_I_LW_R_XOR.bin

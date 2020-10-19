@@ -39,12 +39,13 @@
 // Defines
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-`define alu_add 3'd5
-`define alu_sub 3'd6
-`define alu_and 3'd3
-`define alu_xor 3'd1
-`define alu_or  3'd2
-`define alu_not 3'd4
+`define alu_add 4'd5
+`define alu_sub 4'd6
+`define alu_and 4'd3
+`define alu_xor 4'd1
+`define alu_or  4'd2
+`define alu_not 4'd4
+`define alu_nor 4'd7
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -78,7 +79,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
 
     wire [4:0] instr2mr_a0_addr_gate, instr2mr_a1_addr_gate, instr2mr_a2_addr_gate;
     wire [DATA_WIDTH-1:0] instr_imm2mr_gate;
-    wire [3-1:0] mpa_alu_func_sel_gate;
+    wire [4-1:0] mpa_alu_func_sel_gate;
     wire [DATA_WIDTH-1:0] mr_a0_out;
     wire [DATA_WIDTH-1:0] mr_a1_out_gate; // Supports DEBUG Access
     wire [DATA_WIDTH-1:0] alu_a1_in_gate;
@@ -88,7 +89,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     reg instr_mem_we_local;
     reg mips_reg_we_local;
     reg [3:0] instr_imm_value_en_local;
-    reg [3-1:0] mpa_alu_func_sel_reg;
+    reg [4-1:0] mpa_alu_func_sel_reg;
     reg [DATA_WIDTH-1:0] alu_a1_in_reg;
     reg [1:0] mr_a1_out_instr_imm_en_local;
     reg load_from_data_addr_local;
@@ -162,31 +163,38 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     begin
         instr_imm2mr_reg = { 32'b0 };
 
-        case( instr_imm_value_en_gate )
-            1       :   begin
-                            instr_imm2mr_reg = { 16'b0, instr_mem_dout[15:0] };
-                        end
-            2       :   begin // Load byte
-                            instr_imm2mr_reg = { 24'b0, data_mem_dout[7:0] };
-                        end
-            3       :   begin // Load halfword
-                            instr_imm2mr_reg = { 16'b0, data_mem_dout[15:0] };
-                        end
-            4       :   begin // Load word
-                            instr_imm2mr_reg = ( data_mem_or_alu_dout_sel_gate ) ? dm_data_in_gate : { data_mem_dout };
-                        end
-            5       :   begin // Load byte sign ext
-                            instr_imm2mr_reg = { {24{data_mem_dout[7]}}, data_mem_dout[7:0] };
-                        end
-            6       :   begin // Load halfword sign ext
-                            instr_imm2mr_reg = { {16{data_mem_dout[15]}}, data_mem_dout[15:0] };
-                        end
-            7       :   begin // Load upper immideate
-                            instr_imm2mr_reg = { instr_mem_dout[15:0] , {16{1'b0}} };
-                        end
-            default :   begin
-                        end
+        if( instr_r_i_j_type_gate == 2'd0 ) // Register Type Instruction
+        begin
+            instr_imm2mr_reg = alu_data_out;
+        end
+        else if( instr_r_i_j_type_gate == 2'd1 ) // Immediate type Instruction
+        begin
+            case( instr_imm_value_en_gate )
+                1       :   begin
+                                instr_imm2mr_reg = { 16'b0, instr_mem_dout[15:0] };
+                            end
+                2       :   begin // Load byte
+                                instr_imm2mr_reg = { 24'b0, data_mem_dout[7:0] };
+                            end
+                3       :   begin // Load halfword
+                                instr_imm2mr_reg = { 16'b0, data_mem_dout[15:0] };
+                            end
+                4       :   begin // Load word
+                                instr_imm2mr_reg = ( data_mem_or_alu_dout_sel_gate ) ? dm_data_in_gate : { data_mem_dout };
+                            end
+                5       :   begin // Load byte sign ext
+                                instr_imm2mr_reg = { {24{data_mem_dout[7]}}, data_mem_dout[7:0] };
+                            end
+                6       :   begin // Load halfword sign ext
+                                instr_imm2mr_reg = { {16{data_mem_dout[15]}}, data_mem_dout[15:0] };
+                            end
+                7       :   begin // Load upper immideate
+                                instr_imm2mr_reg = { instr_mem_dout[15:0] , {16{1'b0}} };
+                            end
+                default :   begin
+                            end
         endcase       
+        end
     end
     assign instr_imm2mr_gate = ( mem_debug ) ? din : instr_imm2mr_reg; // Debug Supported
     assign instr_imm_value_en_gate = instr_imm_value_en_local;
@@ -196,19 +204,26 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     begin
         alu_a1_in_reg = mr_a1_out_gate;
 
-        case( mr_a1_out_instr_imm_en_local )
-            1           :   begin
-                                alu_a1_in_reg[15:0] = { instr_mem_dout[15:0] }; // Sign Extended
-                                alu_a1_in_reg[31:16] = {16{ instr_mem_dout[15] }};
-                            end
-            2           :   begin
-                                alu_a1_in_reg[15:0] = { instr_mem_dout[15:0] }; // Zero Extended
-                                alu_a1_in_reg[31:16] = {16{ 1'b0 }};
-                            end
-            default     :   begin
-                                alu_a1_in_reg = instr_mem_dout; // Default
-                            end
-        endcase
+        if( instr_r_i_j_type_gate == 2'd0 ) // Register Type Instruction
+        begin
+            alu_a1_in_reg = mr_a1_out_gate;
+        end
+        else if( instr_r_i_j_type_gate == 2'd1 ) // Immediate type Instruction
+        begin
+            case( mr_a1_out_instr_imm_en_local )
+                1           :   begin
+                                    alu_a1_in_reg[15:0] = { instr_mem_dout[15:0] }; // Sign Extended
+                                    alu_a1_in_reg[31:16] = {16{ instr_mem_dout[15] }};
+                                end
+                2           :   begin
+                                    alu_a1_in_reg[15:0] = { instr_mem_dout[15:0] }; // Zero Extended
+                                    alu_a1_in_reg[31:16] = {16{ 1'b0 }};
+                                end
+                default     :   begin
+                                    alu_a1_in_reg = instr_mem_dout; // Default
+                                end
+            endcase
+        end
     end
     assign alu_a1_in_gate = alu_a1_in_reg;
 
@@ -266,13 +281,20 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
             // +++++++++++++++++++++++++++++++++++++++++++++++
             6'b00_0000  :   begin
                                 case( instr_mem_dout[5:0] )
-                                    // ADD ( MIPS I )
+                                    // ADD ( MIPS I ) // TODO : Will be
+                                    // implemented later after the signed part
+                                    // has been properly understood and I am
+                                    // at a conclusion as to what to do with
+                                    // it.
                                     // ++++++++++++++
                                     6'b10_0000  :   begin
                                                     end
                                     // ADDU ( MIPS I )
                                     // +++++++++++++++
                                     6'b10_0001  :   begin
+                                                        mips_reg_we_local = 1;
+                                                        mpa_alu_func_sel_reg = `alu_add;
+                                                        instr_r_i_j_type_local = 0;
                                                     end
                                     // SUB ( MIPS I )
                                     // ++++++++++++++
@@ -293,18 +315,30 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                     // AND ( MIPS I )
                                     // ++++++++++++++
                                     6'b10_0100  :   begin
+                                                        mips_reg_we_local = 1;
+                                                        mpa_alu_func_sel_reg = `alu_and;
+                                                        instr_r_i_j_type_local = 0;
                                                     end
                                     // OR ( MIPS I )
                                     // +++++++++++++
                                     6'b10_0101  :   begin
+                                                        mips_reg_we_local = 1;
+                                                        mpa_alu_func_sel_reg = `alu_or;
+                                                        instr_r_i_j_type_local = 0;
                                                     end
                                     // XOR ( MIPS I )
                                     // ++++++++++++++
                                     6'b10_0110  :   begin
+                                                        mips_reg_we_local = 1;
+                                                        mpa_alu_func_sel_reg = `alu_xor;
+                                                        instr_r_i_j_type_local = 0;
                                                     end
                                     // NOR ( MIPS I )
                                     // ++++++++++++++
                                     6'b10_0111  :   begin
+                                                        mips_reg_we_local = 1;
+                                                        mpa_alu_func_sel_reg = `alu_nor;
+                                                        instr_r_i_j_type_local = 0;
                                                     end
                                     // JR ( MIPS I ) [ Jump Register ]
                                     // +++++++++++++++++++++++++++++++
@@ -525,7 +559,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
             instr2mr_a1_addr_local = instr_mem_dout[20:16]; // rt
         end
         instr2mr_a0_addr_local = instr_mem_dout[25:21]; // rs
-        instr2mr_a2_addr_local = ( instr_r_i_j_type_gate == 2'd1 /* I Type Check */ ) ? instr_mem_dout[20:16] : instr_mem_dout[15:11]; // rd in R type and rt in I type TODO
+        instr2mr_a2_addr_local = ( instr_r_i_j_type_gate == 2'd1 /* I Type Check */ ) ? instr_mem_dout[20:16] : instr_mem_dout[15:11]; // rd in R type and rt in I type
     end
 
     assign instr2mr_a0_addr_gate = instr2mr_a0_addr_local;
