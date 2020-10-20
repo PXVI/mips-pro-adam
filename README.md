@@ -21,37 +21,37 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
   - [X] ALU
   - [ ] ISA ( Instruction Sets )
     - [X] Register Type
-      - [X] ADDU [ ArithExep Untested ]
-      - [X] ADD [ ArithExep Untested ]
-      - [X] SUBU [ ArithExep Untested ]
-      - [X] SUB [ ArithExep Untested ]
-      - [X] XOR
-      - [X] OR
-      - [X] NOR
-      - [X] SLL
-      - [X] SRL
-      - [X] SLT
-      - [X] SLTU
+      - [X] **ADDU** [ ArithExep Untested ]
+      - [X] **ADD** [ ArithExep Untested ]
+      - [X] **SUBU** [ ArithExep Untested ]
+      - [X] **SUB** [ ArithExep Untested ]
+      - [X] **XOR**
+      - [X] **OR**
+      - [X] **NOR**
+      - [X] **SLL**
+      - [X] **SRL**
+      - [X] **SLT**
+      - [X] **SLTU**
     - [ ] Immideate Type
-      - [X] LW
-      - [X] LH
-      - [X] LHU
-      - [X] LB
-      - [X] LBU
-      - [X] SB
-      - [X] SH
-      - [X] SW
-      - [ ] ADDI [ ArithExep Untested ]
-      - [X] ADDIU [ ArithExep Untested ]
-      - [X] ANDI [ ArithExep Untested ]
-      - [X] ORI
-      - [X] XORI
-      - [X] SLTI
-      - [X] SLTUI
+      - [X] **LW**
+      - [X] **LH**
+      - [X] **LHU**
+      - [X] **LB**
+      - [X] **LBU**
+      - [X] **SB**
+      - [X] **SH**
+      - [X] **SW**
+      - [ ] **ADDI** [ ArithExep Untested ]
+      - [X] **ADDIU** [ ArithExep Untested ]
+      - [X] **ANDI** [ ArithExep Untested ]
+      - [X] **ORI**
+      - [X] **XORI**
+      - [X] **SLTI**
+      - [X] **SLTUI**
     - [ ] Jump / Branch Type
-      - [ ] BEQ
-      - [ ] BNE
-      - [ ] JR
+      - [ ] **BEQ**
+      - [ ] **BNE**
+      - [ ] **JR**
     - [ ] Exceptions
       - [ ] Arithematic Exception Flag
 - [ ] Testbench
