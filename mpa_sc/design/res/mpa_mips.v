@@ -39,13 +39,17 @@
 // Defines
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-`define alu_add 4'd5
-`define alu_sub 4'd6
-`define alu_and 4'd3
-`define alu_xor 4'd1
-`define alu_or  4'd2
-`define alu_not 4'd4
-`define alu_nor 4'd7
+`define alu_add  4'd5
+`define alu_sub  4'd6
+`define alu_and  4'd3
+`define alu_xor  4'd1
+`define alu_or   4'd2
+`define alu_not  4'd4
+`define alu_nor  4'd7
+`define alu_sll  4'd8
+`define alu_srl  4'd9
+`define alu_slt  4'd10
+`define alu_sltu 4'd11
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -81,6 +85,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     wire [DATA_WIDTH-1:0] instr_imm2mr_gate;
     wire [4-1:0] mpa_alu_func_sel_gate;
     wire [DATA_WIDTH-1:0] mr_a0_out;
+    wire [DATA_WIDTH-1:0] alu_d0_in;
     wire [DATA_WIDTH-1:0] mr_a1_out_gate; // Supports DEBUG Access
     wire [DATA_WIDTH-1:0] alu_a1_in_gate;
     wire [ADDRESS_WIDTH-1:0] dm_addr_in_gate;
@@ -105,6 +110,8 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     reg [DATA_WIDTH-1:0] dm_data_in_local;
     reg [1:0] dm_data_wr_byte_strobe_local;
     reg data_mem_or_alu_dout_sel_local;
+    reg mips_r_shift_op_local;
+    reg mips_r_shift_op_gate;
     wire alu_carry_gen;
     wire alu_borrow_gen;
     wire [1:0] mips_arith_ex_check_en_gate;
@@ -266,7 +273,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     // 1. [X] SB
     // 2. [X] SH
     // 3. [X] SW
-    // 4. [X] SC
+    // 4. [ ] SC
     // 
 
     // Control Logic Decoder
@@ -283,6 +290,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
         data_mem_re_local = 0;
         dm_data_wr_byte_strobe_local = 0; // W Strobe - Default ( 1 : Lower Byte, 2 : Lower Half Word, 3 : Word )
         data_mem_or_alu_dout_sel_local = 0;
+        mips_r_shift_op_local = 0; // Set to 1 if there is a need to pass shant as an input to the ALU's input data0
         mips_arith_ex_check_en_local = 0;
         instr_r_i_j_type_local = 0; // Default is R type
 
@@ -328,10 +336,16 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                     // SLT ( MIPS I )
                                     // ++++++++++++++
                                     6'b10_1010  :   begin
+                                                        mips_reg_we_local = 1;
+                                                        mpa_alu_func_sel_reg = `alu_slt;
+                                                        instr_r_i_j_type_local = 0;
                                                     end
                                     // SLTU ( MIPS I )
                                     // +++++++++++++++
                                     6'b10_1011  :   begin
+                                                        mips_reg_we_local = 1;
+                                                        mpa_alu_func_sel_reg = `alu_sltu;
+                                                        instr_r_i_j_type_local = 0;
                                                     end
                                     // AND ( MIPS I )
                                     // ++++++++++++++
@@ -368,10 +382,18 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                     // SLL ( MIPS I ) [ Shift Left Logical ]
                                     // +++++++++++++++++++++++++++++++++++++
                                     6'b00_0000  :   begin
+                                                        mips_reg_we_local = 1;
+                                                        mpa_alu_func_sel_reg = `alu_sll;
+                                                        mips_r_shift_op_local = 1;
+                                                        instr_r_i_j_type_local = 0;
                                                     end
                                     // SRL ( MIPS I ) [ Shift Right Logical ]
                                     // ++++++++++++++++++++++++++++++++++++++
                                     6'b00_0010  :   begin
+                                                        mips_reg_we_local = 1;
+                                                        mpa_alu_func_sel_reg = `alu_srl;
+                                                        mips_r_shift_op_local = 1;
+                                                        instr_r_i_j_type_local = 0;
                                                     end
                                     // Unsupported Func
                                     // ++++++++++++++++
@@ -430,10 +452,22 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
             // SLTI ( MIPS I ) [ Set Less Than Immdediate ]
             // ++++++++++++++++++++++++++++++++++++++++++++
             6'b00_1010  :   begin
+                                mips_reg_we_local = 1;
+                                mpa_alu_func_sel_reg = `alu_slt;
+                                mr_a1_out_instr_imm_en_local = 1;
+                                instr_imm_value_en_local = 4;
+                                data_mem_or_alu_dout_sel_local = 1;
+                                instr_r_i_j_type_local = 1;
                             end
             // SLTIU ( MIPS I ) [ Set Less Than Immediate Unsigned ]
             // +++++++++++++++++++++++++++++++++++++++++++++++++++++
             6'b00_1011  :   begin
+                                mips_reg_we_local = 1;
+                                mpa_alu_func_sel_reg = `alu_sltu;
+                                mr_a1_out_instr_imm_en_local = 2;
+                                instr_imm_value_en_local = 4;
+                                data_mem_or_alu_dout_sel_local = 1;
+                                instr_r_i_j_type_local = 1;
                             end
             // BEQ ( MIPS I ) [ Branch On Equal ]
             // ++++++++++++++++++++++++++++++++++
@@ -618,6 +652,12 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                         .DOUT1( mr_a1_out_gate )
                                     );
 
+    // ALU Input Multiplexer
+    // +++++++++++++++++++++
+    assign mips_r_shift_op_gate = mips_r_shift_op_local;
+    assign alu_d0_in[31:5] = mr_a0_out[31:5];
+    assign alu_d0_in[4:0] = ( mips_r_shift_op_gate == 1'b1 ) ? { instr_mem_dout[10:6] } /* sa */ : mr_a0_out[4:0];
+
     // ALU Moudule Instance
     // ++++++++++++++++++++
     mpa_alu #(  .DATA_WIDTH( DATA_WIDTH )
@@ -625,7 +665,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
             mpa_alu_inst
             (
                 .func_sel( mpa_alu_func_sel_gate ),
-                .data0( mr_a0_out ),
+                .data0( alu_d0_in ),
                 .data1( alu_a1_in_gate ),
                 .data_out( alu_data_out ),
                 .carry_gen( alu_carry_gen ),

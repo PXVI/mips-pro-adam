@@ -49,10 +49,15 @@ module mpa_alu  #(  parameter   DATA_WIDTH = 32,
                                 output borrow_gen
                 );
 
+    parameter SHIFT_WIDTH = $clog2( DATA_WIDTH );
+
     genvar i;
     reg [DATA_WIDTH-1:0] temp_out;
     reg carry_out_local;
     reg borrow_out_local;
+    reg [SHIFT_WIDTH-1:0] shift_val;
+    integer j;
+    reg less_than_found;
 
     // Case Selection
     // ++++++++++++++
@@ -64,8 +69,11 @@ module mpa_alu  #(  parameter   DATA_WIDTH = 32,
     // 5   - Unsigned/Signed ADD
     // 6   - Unsigned/Signed SUB
     // 7   - bitwise NOR
-    // 8   - reserved ( 0 out )
-    // ++++++++++++++++++++++++
+    // 8   - Shift Left Logical
+    // 9   - Shift Right Logical
+    // 10  - Signed set less than
+    // 11  - Unsigned set less than
+    // ++++++++++++++++++++++++++++
 
     always@( * )
     begin
@@ -77,6 +85,64 @@ module mpa_alu  #(  parameter   DATA_WIDTH = 32,
             5           :   {carry_out_local,temp_out} = data0 + data1;
             6           :   {borrow_out_local,temp_out} = ~{ data0[DATA_WIDTH-1], data0 } + { data1[DATA_WIDTH-1], data1 } + 1'b1; // TODO Add a borrow/underflow bit somewhere | This needs to be cross checked
             7           :   temp_out = ~{data0 | data1};
+            8           :   begin
+                                temp_out = data1;
+                                for( shift_val = 0; shift_val < data0[SHIFT_WIDTH-1:0]; shift_val = shift_val + 1'b1 )
+                                begin
+                                    temp_out = { temp_out[DATA_WIDTH-2:0], 1'b0 };
+                                end
+                            end
+            9           :   begin
+                                temp_out = data1;
+                                for( shift_val = 0; shift_val < data0[SHIFT_WIDTH-1:0]; shift_val = shift_val + 1'b1 )
+                                begin
+                                    temp_out = { 1'b0, temp_out[DATA_WIDTH-1:1] };
+                                end
+                            end
+            10          :   begin
+                                less_than_found = 1'b0;
+                                temp_out = 32'd0;
+                                if( data0[DATA_WIDTH-1] != data1[DATA_WIDTH-1] )
+                                begin
+                                    temp_out = ( data0[DATA_WIDTH-1] == 1'b1 ) ? 32'd1 : 32'd0;
+                                end
+                                else
+                                begin
+                                    temp_out = 32'd0;
+
+                                    for( j = DATA_WIDTH-2; j >= 0 && ( less_than_found != 1'b1 ); j = j - 1 )
+                                    begin
+                                        if( ( data0[j] != data1[j] ) & ( data0[j] == 1'b0 ) )
+                                        begin
+                                            temp_out = 32'd1;
+                                            less_than_found = 1'b1;
+                                        end
+                                        if( ( data0[j] != data1[j] ) & ( data0[j] != 1'b0 ) )
+                                        begin
+                                            temp_out = 32'd0;
+                                            less_than_found = 1'b1;
+                                        end
+                                    end
+                                end
+                            end
+            11          :   begin
+                                less_than_found = 1'b1;
+                                temp_out = 32'd0;
+
+                                for( j = DATA_WIDTH-1; j >= 0 && ( less_than_found != 1'b1 ); j = j - 1 )
+                                begin
+                                    if( ( data0[j] != data1[j] ) & ( data0[j] == 1'b0 ) )
+                                    begin
+                                        temp_out = 32'd1;
+                                        less_than_found = 1'b1;
+                                    end
+                                    if( ( data0[j] != data1[j] ) & ( data0[j] != 1'b0 ) )
+                                    begin
+                                        temp_out = 32'd0;
+                                        less_than_found = 1'b1;
+                                    end
+                                end
+                            end
             default     :   temp_out = 0;
         endcase
     end

@@ -287,13 +287,26 @@ module integration_top;
                         // ++++++++++++++
                         6'b10_1010  :   begin
                                             bit [31:0] temp_addr, temp_by4_addr;
+                                            
+                                            bit signed [31:0] sb_mr_mem_rs;
+                                            bit signed [31:0] sb_mr_mem_rt;
 
-                                            sb_mr_mem[rd] = ( sb_mr_mem[rs] < sb_mr_mem[rt] ) ? 32'd1 : 32'd0;
-                                            `tdebug( $sformatf( "SLT Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
+                                            sb_mr_mem_rs = sb_mr_mem[rs];
+                                            sb_mr_mem_rt = sb_mr_mem[rt];
+
+                                            sb_mr_mem[rd] = ( sb_mr_mem_rs < sb_mr_mem_rt ) ? 32'd1 : 32'd0;
+
+                                            //sb_mr_mem[rd] = ( sb_mr_mem[rs] < sb_mr_mem[rt] ) ? 32'd1 : 32'd0;
+                                            `tdebug( $sformatf( "SLT Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem_rt, sb_mr_mem_rs, sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
                         // SLTU ( MIPS I )
                         // +++++++++++++++
                         6'b10_1011  :   begin
+                                            bit [31:0] temp_addr, temp_by4_addr;
+                                            
+                                            sb_mr_mem[rd] = ( sb_mr_mem[rs] < sb_mr_mem[rt] ) ? 32'd1 : 32'd0;
+
+                                            `tdebug( $sformatf( "SLTU Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
                         // AND ( MIPS I )
                         // ++++++++++++++
@@ -335,10 +348,10 @@ module integration_top;
                         // SLL ( MIPS I ) [ Shift Left Logical ]
                         // +++++++++++++++++++++++++++++++++++++
                         6'b00_0000  :   begin
-                                            //bit [31:0] temp_addr, temp_by4_addr;
+                                            bit [31:0] temp_addr, temp_by4_addr;
 
-                                            //sb_mr_mem[rd] = sb_mr_mem[rt] << shamt;
-                                            //`tdebug( $sformatf( "SLL Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
+                                            sb_mr_mem[rd] = sb_mr_mem[rt] << shamt;
+                                            `tdebug( $sformatf( "SLL Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
                         // SRL ( MIPS I ) [ Shift Right Logical ]
                         // ++++++++++++++++++++++++++++++++++++++
@@ -402,7 +415,13 @@ module integration_top;
                         6'b00_1010  :   begin // TODO Treat both the numbers as signed
                                             bit [31:0] temp_addr, temp_by4_addr;
 
-                                            sb_mr_mem[rt] = ( sb_mr_mem[rs] < { {16{imm[15]}}, imm } ) ? 32'd1 : 32'd0;
+                                            bit signed [31:0] sb_mr_mem_rs;
+                                            bit signed [31:0] temp;
+
+                                            sb_mr_mem_rs = sb_mr_mem[rs];
+                                            temp = { {16{imm[15]}}, imm };
+
+                                            sb_mr_mem[rt] = ( sb_mr_mem_rs < temp ) ? 32'd1 : 32'd0;
                                             `tdebug( $sformatf( "SLTI Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Addr (  NA  ), Mem (  NA  ), Instr ( %6b_%5b_%5b_%16b )", rt, rs, imm, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
                                         end
                         // SLTIU ( MIPS I ) [ Set Less Than Immediate Unsigned ]

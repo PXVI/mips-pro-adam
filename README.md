@@ -20,14 +20,18 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
   - [ ] MIPS Registers
   - [X] ALU
   - [ ] ISA ( Instruction Sets )
-    - [ ] Register Type
-      - [X] ADDU
-      - [ ] ADD
-      - [ ] SUBU
-      - [ ] SUB
+    - [X] Register Type
+      - [X] ADDU [ ArithExep Untested ]
+      - [X] ADD [ ArithExep Untested ]
+      - [X] SUBU [ ArithExep Untested ]
+      - [X] SUB [ ArithExep Untested ]
       - [X] XOR
       - [X] OR
       - [X] NOR
+      - [X] SLL
+      - [X] SRL
+      - [X] SLT
+      - [X] SLTU
     - [ ] Immideate Type
       - [X] LW
       - [X] LH
@@ -37,12 +41,17 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
       - [X] SB
       - [X] SH
       - [X] SW
-      - [ ] ADDI
-      - [X] ADDIU
-      - [X] ANDI
+      - [ ] ADDI [ ArithExep Untested ]
+      - [X] ADDIU [ ArithExep Untested ]
+      - [X] ANDI [ ArithExep Untested ]
       - [X] ORI
       - [X] XORI
-    - [ ] Jump Type
+      - [X] SLTI
+      - [X] SLTUI
+    - [ ] Jump / Branch Type
+      - [ ] BEQ
+      - [ ] BNE
+      - [ ] JR
     - [ ] Exceptions
       - [ ] Arithematic Exception Flag
 - [ ] Testbench
@@ -56,14 +65,16 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
   - [ ] Basic Instructions Data Path Only Tests
     - [X] Load Instructions
     - [X] Store Instructions
-    - [ ] Register Arithematic Instructions
+    - [X] Register Arithematic Instructions
     - [ ] Immideate Arithematic Instructions
     - [ ] Branch Instructions
   - [ ] Appication Based Tests
   - [ ] Stress Testing Tests
 - [ ] Miscellaneous
   - [X] Makefile
+  - [ ] Makefile Documentation ( User Manual )
   - [X] Regression commands and regression lists
+  - [ ] Multi-Core Regression Scripts
   - [X] Debug Logs
   - [X] External Program File ( .bin )
   - [X] Test dump ( .vcd )
