@@ -48,10 +48,10 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
       - [X] **XORI**
       - [X] **SLTI**
       - [X] **SLTUI**
-    - [ ] Jump / Branch Type
-      - [ ] **BEQ**
-      - [ ] **BNE**
-      - [ ] **JR**
+    - [X] Jump / Branch Type
+      - [X] **BEQ** 
+      - [X] **BNE**
+      - [X] **JR** [ AddrErrorExep Untested ]
     - [ ] Exceptions
       - [ ] Arithematic Exception Flag
 - [ ] Testbench

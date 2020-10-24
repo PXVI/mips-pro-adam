@@ -50,6 +50,8 @@
 `define alu_srl  4'd9
 `define alu_slt  4'd10
 `define alu_sltu 4'd11
+`define alu_eq   4'd12
+`define alu_neq  4'd13
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -112,6 +114,10 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
     reg data_mem_or_alu_dout_sel_local;
     reg mips_r_shift_op_local;
     reg mips_r_shift_op_gate;
+    reg assign_new_pc_addr_local;
+    reg update_branch_cond_reg_local;
+    wire update_branch_cond_reg_gate;
+    wire assign_new_pc_addr_gate;
     wire alu_carry_gen;
     wire alu_borrow_gen;
     wire [1:0] mips_arith_ex_check_en_gate;
@@ -135,6 +141,9 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
 
     reg [DATA_WIDTH-1:0] reg_HI_p, reg_HI_n; // Special Purpose Register #2
     reg [DATA_WIDTH-1:0] reg_LO_p, reg_LO_n; // Special Purpose Register #3
+
+    reg beq_bne_p, beq_bne_n;
+    reg [(DATA_WIDTH/2)-1:0] new_pc_offset_p, new_pc_offset_n; // Will store the offset value from the Branch instructions for use in the Branch Delay Slot
 
     // Debug Access Ports
     // ++++++++++++++++++
@@ -245,6 +254,8 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
 
     assign mpa_alu_func_sel_gate = mpa_alu_func_sel_reg;
     assign pc2instr_mem_addr = ( mem_debug ) ? addr : pc_p; // Debug Access
+    assign assign_new_pc_addr_gate = assign_new_pc_addr_local;
+    assign update_branch_cond_reg_gate = update_branch_cond_reg_local;
 
     /* Instructions
      * ------------
@@ -293,6 +304,8 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
         mips_r_shift_op_local = 0; // Set to 1 if there is a need to pass shant as an input to the ALU's input data0
         mips_arith_ex_check_en_local = 0;
         instr_r_i_j_type_local = 0; // Default is R type
+        assign_new_pc_addr_local = 0; // Only works JR for branch instruction
+        update_branch_cond_reg_local = 0; // Only for Branch instructions
 
         case( instr_mem_dout[31:26] )
             // Generic Register Instruction ( Special Opcode )
@@ -378,6 +391,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                     // JR ( MIPS I ) [ Jump Register ]
                                     // +++++++++++++++++++++++++++++++
                                     6'b00_1000  :   begin
+                                                        assign_new_pc_addr_local = 1;
                                                     end
                                     // SLL ( MIPS I ) [ Shift Left Logical ]
                                     // +++++++++++++++++++++++++++++++++++++
@@ -472,10 +486,14 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
             // BEQ ( MIPS I ) [ Branch On Equal ]
             // ++++++++++++++++++++++++++++++++++
             6'b00_0100  :   begin
+                                update_branch_cond_reg_local = 1;
+                                mpa_alu_func_sel_reg = `alu_eq;
                             end
             // BNE ( MIPS I ) [ Branch On Not Equal ]
             // ++++++++++++++++++++++++++++++++++++++
             6'b00_0101  :   begin
+                                update_branch_cond_reg_local = 1;
+                                mpa_alu_func_sel_reg = `alu_neq;
                             end
             // LBU ( MIPS I ) [ Load Byte Unsigned ]
             // +++++++++++++++++++++++++++++++++++++
@@ -582,6 +600,8 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
         if( !HW_RSTn )
         begin
             pc_p <= RESET_PC_ADDRESS;
+            beq_bne_p <= 1'b0;
+            new_pc_offset_p <= {((DATA_WIDTH/2)-1){1'b0}};
         end
         else
         begin
@@ -594,11 +614,35 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                 pc_p <= pc_n;
             end
         end
+        beq_bne_p <= beq_bne_n;
+        new_pc_offset_p <= new_pc_offset_n;
     end
 
     always@( * ) // Program Counter Next Address Selection
     begin
-        pc_n = { pc_p + { {28{1'b0}}, 3'd4 } }; // Default Rule
+        if( update_branch_cond_reg_local == 1'b1 )
+        begin
+            beq_bne_n = alu_data_out[0]; // Setting this to 1
+            new_pc_offset_n = instr_mem_dout[15:0]; // Storing the offset value provided in the Branch Instruction
+        end
+        else
+        begin
+            beq_bne_n = 1'b0; /* TODO : Check if the bit resets on the next cycle or not */
+            new_pc_offset_n = new_pc_offset_p;
+        end
+
+        if( beq_bne_p == 1'b1 )
+        begin
+            pc_n = pc_p + { {16{new_pc_offset_p[15]}}, new_pc_offset_p[13:0], 2'b00 }; // For Branch Instructions
+        end
+        else if( assign_new_pc_addr_local == 1'b1 )
+        begin
+            pc_n = { mr_a0_out }; // For JR instruction
+        end
+        else
+        begin
+            pc_n = { pc_p + { {28{1'b0}}, 3'd4 } }; // Default Rule
+        end
     end
 
     // MIPS Reg Input Address Mux

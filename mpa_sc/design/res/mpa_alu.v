@@ -73,6 +73,8 @@ module mpa_alu  #(  parameter   DATA_WIDTH = 32,
     // 9   - Shift Right Logical
     // 10  - Signed set less than
     // 11  - Unsigned set less than
+    // 12  - Equal To
+    // 13  - Not Equal To
     // ++++++++++++++++++++++++++++
 
     always@( * )
@@ -142,6 +144,12 @@ module mpa_alu  #(  parameter   DATA_WIDTH = 32,
                                         less_than_found = 1'b1;
                                     end
                                 end
+                            end
+            12          :   begin
+                                temp_out = ( data0 == data1 ) ? 32'd1 : 32'd0;
+                            end
+            13          :   begin
+                                temp_out = ( data0 != data1 ) ? 32'd1 : 32'd0;
                             end
             default     :   temp_out = 0;
         endcase

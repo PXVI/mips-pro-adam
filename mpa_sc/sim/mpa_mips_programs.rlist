@@ -23,3 +23,8 @@
 ./test_programs/test_load_im_program_I_LW_R_SRL.bin
 ./test_programs/test_load_im_program_I_LW_SLTI.bin
 ./test_programs/test_load_im_program_I_LW_SLTUI.bin
+./test_programs/test_load_im_program_I_LBU_I_BEQ_BRANCH_NOT_TAKEN.bin
+./test_programs/test_load_im_program_I_LBU_I_BEQ_BRANCH_TAKEN.bin
+./test_programs/test_load_im_program_I_LBU_I_BNE_BRANCH_NOT_TAKEN.bin
+./test_programs/test_load_im_program_I_LBU_I_BNE_BRANCH_TAKEN.bin
+./test_programs/test_load_im_program_I_LBU_R_JR.bin

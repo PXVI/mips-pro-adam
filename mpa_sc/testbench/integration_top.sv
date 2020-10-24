@@ -211,12 +211,16 @@ module integration_top;
         begin
             for( int i = 0; i < num_instr; i++ )
             begin
-                bit [31:0] temp_pc;
-                bit [4:0] rs,rt,rd;
+                bit [31:0] temp_pc, branch_addr;
+                bit [15:0] target_offset;
+                bit [4:0] rs,rt,rd, hint;
                 bit [15:0] imm;
                 bit [25:0] addr;
                 bit [4:0] shamt;
                 bit arith_ex;
+                bit addr_err_ex;
+                bit beq_bne_cond;
+                bit jmp_branch; // If set, the PC will be updated to a new value
 
                 rs = sb_im_mem[mips_model_pc/4][25:21];
                 rt = sb_im_mem[mips_model_pc/4][20:16];
@@ -224,6 +228,7 @@ module integration_top;
                 imm = sb_im_mem[mips_model_pc/4][15:0];
                 addr = sb_im_mem[mips_model_pc/4][25:0];
                 shamt = sb_im_mem[mips_model_pc/4][10:6];
+                hint = sb_im_mem[mips_model_pc/4][10:6];
 
                 temp_pc = mips_model_pc;
 
@@ -231,6 +236,19 @@ module integration_top;
                 // ( These are BFM Local Registers )
                 // --------------------------------------------------------
                 
+                //if( start_branch_slot )
+                //begin
+                //    start_branch_slot = 0;
+                //    mips_model_pc = branch_addr;
+                //end
+
+                if( beq_bne_cond )
+                begin
+                    beq_bne_cond = 0;
+                    jmp_branch = 1;
+                    `tdebug( $sformatf( "[ Branch Delay Slot ]" ) )
+                end
+
                 if( sb_im_mem[mips_model_pc/4][31:26] == 6'b00_0000 ) // Special
                 begin
                     case( sb_im_mem[mips_model_pc/4][5:0] ) // Function
@@ -340,10 +358,27 @@ module integration_top;
                                             sb_mr_mem[rd] = ~( sb_mr_mem[rs] | sb_mr_mem[rt] );
                                             `tdebug( $sformatf( "NOR Instruction : RT ( %0d ), RS ( %0d ), RD ( %0d ), MR[rt] ( %0d ), MR[rs] ( %0d ), MR[rd] ( %0d ), Instr ( %6b_%5b_%5b_%5b_%5b_%6b )", rt, rs, rd, sb_mr_mem[rt], sb_mr_mem[rs], sb_mr_mem[rd], sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
                                         end
-                        // JR ( MIPS I ) [ Jump Register ]
+                        // JR ( MIPS I ) [ Jump Register ] 
                         // +++++++++++++++++++++++++++++++
                         6'b00_1000  :   begin
-                                            `unimpl
+                                            // TODO : Address Error Exception
+                                            if( sb_mr_mem[rs][1:0] != 2'b00 )
+                                            begin
+                                                addr_err_ex = 1;
+                                                mips_model_pc = sb_mr_mem[rs];
+                                                `tdebug( $sformatf( "JR Instruction : RS ( %0d ), hint ( %0d ), MR[rs] ( %0d ), Old PC : %0d, New PC : %0d, Instr ( %6b_%5b_%10b_%5b_%6b ) [ Address Error Exception ]", rs, hint, sb_mr_mem[rs], temp_pc, mips_model_pc, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
+
+                                                // Note ; Will not make a lot
+                                                // of difference of the
+                                                // processor's PC is already
+                                                // working with masked lower
+                                                // 2 bits
+                                            end
+                                            else
+                                            begin
+                                                mips_model_pc = sb_mr_mem[rs];
+                                                `tdebug( $sformatf( "JR Instruction : RS ( %0d ), hint ( %0d ), MR[rs] ( %0d ), Old PC : %0d, New PC : %0d, Instr ( %6b_%5b_%10b_%5b_%6b ) [ Address Error Exception ]", rs, hint, sb_mr_mem[rs], temp_pc, mips_model_pc, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:11], sb_im_mem[mips_model_pc/4][10:6], sb_im_mem[mips_model_pc/4][5:0] ) )
+                                            end
                                         end
                         // SLL ( MIPS I ) [ Shift Left Logical ]
                         // +++++++++++++++++++++++++++++++++++++
@@ -435,12 +470,34 @@ module integration_top;
                         // BEQ ( MIPS I ) [ Branch On Equal ]
                         // ++++++++++++++++++++++++++++++++++
                         6'b00_0100  :   begin
-                                            `unimpl
+                                            if( sb_mr_mem[rs] == sb_mr_mem[rt] )                
+                                            begin
+                                                beq_bne_cond = 1;
+                                                target_offset = imm;
+                                                `tdebug( $sformatf( "BEQ Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Instr ( %6b_%5b_%5b_%16b ) [ Branch Condition : TRUE ]", rt, rs, imm, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
+                                            end
+                                            else
+                                            begin
+                                                beq_bne_cond = 0;
+                                                target_offset = imm;
+                                                `tdebug( $sformatf( "BEQ Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Instr ( %6b_%5b_%5b_%16b ) [ Branch Condition : FALSE ]", rt, rs, imm, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
+                                            end
                                         end
                         // BNE ( MIPS I ) [ Branch On Not Equal ]
                         // ++++++++++++++++++++++++++++++++++++++
                         6'b00_0101  :   begin
-                                            `unimpl
+                                            if( !( sb_mr_mem[rs] == sb_mr_mem[rt] ) )                
+                                            begin
+                                                beq_bne_cond = 1;
+                                                target_offset = imm;
+                                                `tdebug( $sformatf( "BNE Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Instr ( %6b_%5b_%5b_%16b ) [ Branch Condition : TRUE ]", rt, rs, imm, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
+                                            end
+                                            else
+                                            begin
+                                                beq_bne_cond = 0;
+                                                target_offset = imm;
+                                                `tdebug( $sformatf( "BNE Instruction : RT ( %0d ), RS ( %0d ), IMM = %0d, Instr ( %6b_%5b_%5b_%16b ) [ Branch Condition : FALSE ]", rt, rs, imm, sb_im_mem[mips_model_pc/4][31:26], sb_im_mem[mips_model_pc/4][25:21], sb_im_mem[mips_model_pc/4][20:16], sb_im_mem[mips_model_pc/4][15:0] ) )
+                                            end
                                         end
                         // LBU ( MIPS I ) [ Load Byte Unsigned ]
                         // +++++++++++++++++++++++++++++++++++++
@@ -537,6 +594,17 @@ module integration_top;
                     endcase
                 end
 
+                // If the branch condition was true, then the PC will be
+                // updated with a new value
+                // -----------------------------------------------------
+                if( jmp_branch )
+                begin
+                    // Branch condition is true, so it will be taken
+                    jmp_branch = 0;
+                    mips_model_pc = mips_model_pc + { {16{target_offset[15]}}, target_offset[13:0], 2'b00 };
+                    `tdebug( $sformatf( "[ Branch Delay Slot ] : New PC Value ( %0d )", mips_model_pc ) )
+                end
+
                 // Fixed Register Values
                 // ---------------------
                 sb_mr_mem[0] = 32'd0;
@@ -552,6 +620,11 @@ module integration_top;
                 begin
                     mips_model_pc = ( mips_model_pc );
                 end
+
+                // To create a roll over, like the one happening in the MPA
+                // Core. The address rolls over at the Instruction Capacity
+                // * 4 Address Boundary
+                mips_model_pc = mips_model_pc % ( IM_CAPACITY*4 );
                 //`tdebug( $sformatf( "New PC : %0d", mips_model_pc ) )
             end
         end
