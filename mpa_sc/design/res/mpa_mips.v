@@ -601,7 +601,7 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
         begin
             pc_p <= RESET_PC_ADDRESS;
             beq_bne_p <= 1'b0;
-            new_pc_offset_p <= {((DATA_WIDTH/2)-1){1'b0}};
+            new_pc_offset_p <= {(DATA_WIDTH/2){1'b0}};
         end
         else
         begin

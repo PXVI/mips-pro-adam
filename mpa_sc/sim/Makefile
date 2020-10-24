@@ -49,6 +49,11 @@ DESIGN_ONLY?=0
 TDEBUG?=0
 
 DOLLAR=$
+SEED?=0
+RANDOM_REGRESS_SEED?=0
+COVER_ARG_VAL?=0
+CORES?=1
+MC?=0
 
 # Define Switch Decl
 # ----------------------
@@ -110,6 +115,20 @@ else
 WALL__ARG=
 endif
 
+ifeq ($(SEED),0)
+RAND_SEED=$(shell date "+%N")
+SV_SEED=-sv_seed $(RAND_SEED)
+else
+RAND_SEED=$(SEED)
+SV_SEED=-sv_seed $(SEED)
+endif
+
+ifneq ($(RANDOM_REGRESS_SEED),0)
+RANDOM_REGRESS_SEED=1
+else
+RANDOM_REGRESS_SEED=0
+endif
+
 # Labels Declarations
 # ----------------------
 
@@ -121,7 +140,11 @@ endif
 
 comp_only : clean lib comp
 
+ifeq ($(MC),1)
+regress : clean lib comp opt regress_mc_sim regress_logs
+else
 regress : clean lib comp opt regress_sim regress_logs regress_result
+endif
 
 # Compilie Time Arguments
 # --------------------------------------------
@@ -165,6 +188,7 @@ sim:
 	$(DO_CMD) \
 	-l $(TESTNAME).log \
 	-64 \
+	$(SV_SEED) \
 	-c \
 	$(IMFILE_ARG) \
 	$(MRFILE_ARG) \
@@ -183,6 +207,12 @@ regress_sim:
 	echo "Inside regression command. Running program file $(DOLLAR)pfname"; \
 	make sim SB=1 IMFILE=`head -$(DOLLAR)j mpa_mips_programs.rlist | tail -1`; \
 	done;
+
+# Multi Core Regress Simulations
+# --------------------------------------------
+regress_mc_sim:
+	@echo "Firing the Regression Command...";
+	@./regress_script.sh $(REGRESS_LIST) $(RAND_SEED) $(RANDOM_REGRESS_SEED) $(COVER_ARG_VAL) $(CORES);
 
 # Library Generation
 # --------------------------------------------

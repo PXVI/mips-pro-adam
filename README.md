@@ -67,14 +67,14 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
     - [X] Store Instructions
     - [X] Register Arithematic Instructions
     - [ ] Immideate Arithematic Instructions
-    - [ ] Branch Instructions
+    - [X] Branch Instructions
   - [ ] Appication Based Tests
   - [ ] Stress Testing Tests
 - [ ] Miscellaneous
   - [X] Makefile
   - [ ] Makefile Documentation ( User Manual )
   - [X] Regression commands and regression lists
-  - [ ] Multi-Core Regression Scripts
+  - [X] Multi-Core Regression Scripts
   - [X] Debug Logs
   - [X] External Program File ( .bin )
   - [X] Test dump ( .vcd )
