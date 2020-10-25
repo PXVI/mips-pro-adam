@@ -1,7 +1,7 @@
 # mips-pro-adam
 ------------------------
 <br />
-This is a MIPS microprocessor hardware design. The design is in no way meant to be a full fledged RTL with some extreme application. This is rather to build my understanding of the processor design and eventually the verification. <br />
+This is a MIPS microprocessor hardware design reposiroty. The design is in no way meant to be a full fledged RTL with some extreme application. This is rather to build my understanding of the processor design and eventually the verification. <br />
 I will be using the MIPS ISA, to which extent, I do not know. Primary goal is to actually build a microarchitecture which will serve as a learning reference for myself or anyone who is intereted. The microarchitectures ( one after the other ) which I will be implementing are :<br />
 <br />
 <b>1. Single Cycle Processor Design</b><br />
@@ -9,76 +9,43 @@ I will be using the MIPS ISA, to which extent, I do not know. Primary goal is to
 <b>3. Pipelined Processor Design</b><br />
 <br />
 <br />
-<b>Single Cycle Design :</b><br />
+<b>Single Cycle Design Features :</b><br />
 <br />
 This is the IP checklist for the time being. Eventually, I will add a few more things as I figure out the proper design flow. As of now, my primary focus is implementing the mandatory instructions and provide proper debug access feature.<br />
 <br />
 
-- [ ] Design
-  - [X] Instruction Memory
-  - [X] Data Memory
-  - [ ] MIPS Registers
-  - [X] ALU
-  - [ ] ISA ( Instruction Sets )
-    - [X] Register Type
-      - [X] **ADDU** [ ArithExep Untested ]
-      - [X] **ADD** [ ArithExep Untested ]
-      - [X] **SUBU** [ ArithExep Untested ]
-      - [X] **SUB** [ ArithExep Untested ]
-      - [X] **XOR**
-      - [X] **OR**
-      - [X] **NOR**
-      - [X] **SLL**
-      - [X] **SRL**
-      - [X] **SLT**
-      - [X] **SLTU**
-    - [ ] Immideate Type
-      - [X] **LW**
-      - [X] **LH**
-      - [X] **LHU**
-      - [X] **LB**
-      - [X] **LBU**
-      - [X] **SB**
-      - [X] **SH**
-      - [X] **SW**
-      - [ ] **ADDI** [ ArithExep Untested ]
-      - [X] **ADDIU** [ ArithExep Untested ]
-      - [X] **ANDI** [ ArithExep Untested ]
-      - [X] **ORI**
-      - [X] **XORI**
-      - [X] **SLTI**
-      - [X] **SLTUI**
-    - [X] Jump / Branch Type
-      - [X] **BEQ** 
-      - [X] **BNE**
-      - [X] **JR** [ AddrErrorExep Untested ]
-    - [ ] Exceptions
-      - [ ] Arithematic Exception Flag
-- [ ] Testbench
-  - [ ] Systemverilog based functional model of MIPS32
-  - [X] Debug tasks to write and read data into the IP
-  - [X] Scoreboarding tasks
-  - [X] Scoreboarding displays
-  - [ ] Stimulus Randomization
-  - [X] Simulation run result displays / infos
-- [ ] Test Suite ( Custom )
-  - [ ] Basic Instructions Data Path Only Tests
-    - [X] Load Instructions
-    - [X] Store Instructions
-    - [X] Register Arithematic Instructions
-    - [ ] Immideate Arithematic Instructions
-    - [X] Branch Instructions
-  - [ ] Appication Based Tests
-  - [ ] Stress Testing Tests
-- [ ] Miscellaneous
-  - [X] Makefile
-  - [ ] Makefile Documentation ( User Manual )
-  - [X] Regression commands and regression lists
-  - [X] Multi-Core Regression Scripts
-  - [X] Debug Logs
-  - [X] External Program File ( .bin )
-  - [X] Test dump ( .vcd )
-  - [ ] Documentation / Readme
+- Design Features
+  - Supports Configurable Debug Access ( this is used to load and read the core's registers )
+  - Supports Configurable Instruction Memory
+  - Supports Configurable Data Memory
+  - Supports Basic MIPS Registers Set
+  - Supports Independent ALU ( supports interchangablility with a different variant if needed )
+  - Supports Base ISA ( Instruction Sets )
+    - **Supported Register Type Instructions : 11**
+    - **Supported Immideate Type Instructions : 15**
+    - **Supported Branch Instruction : 3**
+    - **Supported ALU Operations : 13**
+- Supports an custom SystemVerilog Testbench
+  - Supports all MIP32 instructions & registers mentioned above, in it's own SystemSerilog based functional model
+  - Supports pre defined debug tasks to load and read the core's registers
+  - Supports scoreboarding
+  - Supports descriptive error and infos
+  - Supports simulation summary prints
+- **Supports ISA specific test suite : ~30 directed programs/tests**
+  - Basic Load Programs Provided
+  - Basic Store Programs Provided
+  - Basic Register Arithematic Programs Provided
+  - Basic Immideate Instruction Programs Provided
+  - Basic Branch Instruction Programs Provided
+- Additonal Miscellaneous Testbench & Reposiroty Feaures
+  - Custom Makefile provided
+  - Makefile User Guide Is Provided
+  - Supports Basic Regression Commands & Regression Lists
+  - Supports Multi Core Simulations/Regressions
+  - Supports Test Specific Debug Log
+  - External Program, Data, Register File Loading is supported
+  - DUMP generation is supported
+  - Basic Core Documenation is provided ( it's the README.md file indside the  core's directory )
 <br />
 <br />
 <br />
