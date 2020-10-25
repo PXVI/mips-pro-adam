@@ -1,16 +1,16 @@
 # mips-pro-adam
 ------------------------
+### Single Cycle Design
+------------------------
 <br />
-This is a MIPS microprocessor hardware design. The design is in no way meant to be a full fledged RTL with some extreme application. This is rather to build my understanding of the processor design and eventually the verification. <br />
-I will be using the MIPS ISA, to which extent, I do not know. Primary goal is to actually build a microarchitecture which will serve as a learning reference for myself or anyone who is intereted. The microarchitectures ( one after the other ) which I will be implementing are :<br />
-<br />
-<b>1. Single Cycle Processor Design</b><br />
-<b>2. Multi Cycle Processor Design</b><br />
-<b>3. Pipelined Processor Design</b><br />
+This is the MIPS32 single cycle hardware design. The objective of this design is to provide a base skeletal processor core model which implements the basic MIPS32 ISA. A lot of more advance features have not been covered/implemented in this version, bacause frankly the SV based testbench was getting more complex and spending more time fine tuning it seemed tedious. So, this verison will be completed will all the basic features intact. The design and testbench features have been listed below :
+
 <br />
 <br />
-<b>Single Cycle Design :</b><br />
+
+<b>Project Features :</b><br />
 <br />
+
 This is the IP checklist for the time being. Eventually, I will add a few more things as I figure out the proper design flow. As of now, my primary focus is implementing the mandatory instructions and provide proper debug access feature.<br />
 <br />
 
