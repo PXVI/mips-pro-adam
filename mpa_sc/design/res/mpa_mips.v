@@ -415,12 +415,19 @@ module mpa_mips_32  #(  parameter   DATA_WIDTH = 32,
                                                     end
                                 endcase
                             end
-            // ADDI ( MIPS I ) // Max Postive Sume is (2^31)-1
+            // ADDI ( MIPS I ) // Max Postive Sum is (2^31)-1
             // TODO Must generate an overflow for sum if addition 
             // goes above the positive max or below the min negative 
             // val
             // +++++++++++++++
             6'b00_1000  :   begin
+                                mips_reg_we_local = 1;
+                                mpa_alu_func_sel_reg = `alu_add;
+                                mr_a1_out_instr_imm_en_local = 1;
+                                instr_imm_value_en_local = 4;
+                                data_mem_or_alu_dout_sel_local = 1;
+                                mips_arith_ex_check_en_local = 1;
+                                instr_r_i_j_type_local = 1;
                             end
             // ADDIU ( MIPS I ) // Max Positive Sum is (2^32)-1
             // TODO Must implement the overflow for max sum
