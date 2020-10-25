@@ -8,6 +8,8 @@ I will be using the MIPS ISA, to which extent, I do not know. Primary goal is to
 <b>2. Multi Cycle Processor Design</b><br />
 <b>3. Pipelined Processor Design</b><br />
 <br />
+
+------------------------
 <br />
 <b>Single Cycle Design Features :</b><br />
 <br />
