@@ -1,6 +1,7 @@
 # mips-pro-adam
 ------------------------
-<b>Makefilr User Guide :</b><br />
+
+<b>Makefile User Guide :</b><br />
 ------------------------
 <br />
 
