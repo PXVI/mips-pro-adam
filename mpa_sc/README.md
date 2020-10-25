@@ -13,12 +13,12 @@ This is the MIPS32 single cycle hardware design. The objective of this design is
 This is the IP checklist for the time being. Eventually, I will add a few more things as I figure out the proper design flow. As of now, my primary focus is implementing the mandatory instructions and provide proper debug access feature.<br />
 <br />
 
-- [ ] Design
+- [X] Design
   - [X] Instruction Memory
   - [X] Data Memory
   - [X] MIPS Registers
   - [X] ALU
-  - [ ] ISA ( Instruction Sets )
+  - [X] ISA ( Instruction Sets )
     - [X] Register Type
       - [X] **ADDU** [ ArithExep Untested ]
       - [X] **ADD** [ ArithExep Untested ]
@@ -31,7 +31,7 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
       - [X] **SRL**
       - [X] **SLT**
       - [X] **SLTU**
-    - [ ] Immideate Type
+    - [X] Immideate Type
       - [X] **LW**
       - [X] **LH**
       - [X] **LHU**
@@ -40,7 +40,7 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
       - [X] **SB**
       - [X] **SH**
       - [X] **SW**
-      - [ ] **ADDI** [ ArithExep Untested ]
+      - [X] **ADDI** [ ArithExep Untested ]
       - [X] **ADDIU** [ ArithExep Untested ]
       - [X] **ANDI** [ ArithExep Untested ]
       - [X] **ORI**
@@ -60,12 +60,12 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
   - [X] Scoreboarding displays
   - [ ] ~~Stimulus Randomization~~
   - [X] Simulation run result displays / infos
-- [ ] Test Suite ( Custom )
-  - [ ] Basic Instructions Data Path Only Tests
+- [X] Test Suite ( Custom )
+  - [X] Basic Instructions Data Path Only Tests
     - [X] Load Instructions
     - [X] Store Instructions
     - [X] Register Arithematic Instructions
-    - [ ] Immideate Arithematic Instructions
+    - [X] Immideate Arithematic Instructions
     - [X] Branch Instructions
   - [ ] ~~Appication Based Tests~~
   - [ ] ~~Stress Testing Tests~~
