@@ -57,8 +57,8 @@ module integration_top;
     // ----------
     parameter   DATA_WIDTH = 32,
                 ADDRESS_WIDTH = 32,
-                IM_CAPACITY = 32, // Byte Addressable
-                DM_CAPACITY = 32, // Byte Addressable
+                IM_CAPACITY = 512, // Byte Addressable
+                DM_CAPACITY = 512, // Byte Addressable
                 MR_CAPACITY = 32; // Double Word Addressable
     
     // IP Regs and Wires
