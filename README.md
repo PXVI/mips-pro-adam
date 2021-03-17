@@ -59,5 +59,5 @@ This is the IP checklist for the time being. Eventually, I will add a few more t
 <b>Update</b><br /><br />
 Upon proper research, I realised that MIPS ISA is not exactly open source. So, spending too much time on this might in the end become unproductive. Which is why, I will just be building a simple verison of the base ISA and re-use it to further implement the multi-cycle and the pipelined versions. Testing will be very simple and will not involve a full fledge UVM testbench as I originally intended. Rather, we will be going with a basic verilog based test bench.<br /><br />
 In this light, I plan to start with a RISC-V processor implementation, once my MIPS processor is complete.<br />
-<b>Lastly, this code is in no way proprietary, nor does it have any restrictions. Feel free to use this anywhere or however you want :)</b>
+<b>Lastly, this code is in no way proprietary, nor does it have any restrictions. Feel free to use this anywhere or however you want.</b>
 
