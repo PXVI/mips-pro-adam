@@ -6,9 +6,9 @@ I will be using the MIPS ISA, to which extent, I do not know. Primary goal is to
 <br />
 <b>1. Single Cycle Processor Design
 </b><br />
-<b>2. Multi Cycle Processor Design [ SCRATCHED ]
+<b>2. Multi Cycle Processor Design [ Discontinued ]
 </b><br />
-<b>3. Pipelined Processor Design
+<b>3. Pipelined Processor Design [ On Hold ]
 </b><br />
 <br />
 
