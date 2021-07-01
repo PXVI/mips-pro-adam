@@ -8,7 +8,7 @@ I will be using the MIPS ISA, to which extent, I do not know. Primary goal is to
 </b><br />
 <b>2. Multi Cycle Processor Design [ Discontinued ]
 </b><br />
-<b>3. Pipelined Processor Design [ On Hold ]
+<b>3. Pipelined Processor Design [ Discontinued ]
 </b><br />
 <br />
 
